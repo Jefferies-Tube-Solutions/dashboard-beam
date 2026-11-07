@@ -4,7 +4,10 @@ permissions:
   contents: read
 jobs:
   documentation:
-    name: Validate JTS design and documentation
+    name: ${{ matrix.check }}
+    strategy:
+      matrix:
+        check: [JTS documentation, Validate JTS design and documentation]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
