@@ -36,7 +36,7 @@ expected_images = (
 )
 if not readme.startswith('<p align="right">') or f'alt="draft | v{VERSION}"' not in readme:
     raise SystemExit("VIS-002: README must show the current draft version.")
-images = tuple(re.findall(r'<img\b[^>]*\bsrc="([^"]+)"', readme))
+images = tuple(re.findall(r'<img\b[^>]*\bsrc="([^"]+)"', readme.partition("</p>")[2]))
 if images[:3] != expected_images:
     raise SystemExit("VIS-001: README must show the approved theme and product artwork.")
 for slug in SLUGS["human"]:
