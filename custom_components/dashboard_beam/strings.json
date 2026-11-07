@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect two Home Assistant instances",
+        "description": "Install Beam on the local instance. Enter administrator tokens and confirm the entity prefix used on that instance.",
+        "data": {
+          "local_url": "Local Home Assistant URL",
+          "local_token": "Local access token",
+          "remote_url": "Remote Home Assistant URL",
+          "remote_token": "Remote access token",
+          "prefix": "Local entity prefix"
+        }
+      },
+      "dashboards": {
+        "title": "Choose dashboards",
+        "data": {"local_dashboard": "Local dashboard", "remote_dashboard": "Remote dashboard"}
+      },
+      "views": {
+        "title": "Choose what to synchronize",
+        "description": "The selected source wins the first sync if the content differs. Afterwards, changes can travel both ways.",
+        "data": {"local_view": "Local view", "remote_view": "Remote view", "initial_source": "First sync source"}
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not read both instances. Check the URLs and administrator tokens.",
+      "invalid_input": "Enter two distinct Home Assistant URLs and a valid entity prefix.",
+      "mismatched_scope": "Choose entire dashboards on both sides or an individual view on both sides.",
+      "no_dashboards": "Create an editable dashboard on each instance first."
+    },
+    "abort": {"overlap": "One of these dashboards or views is already managed by another rule."}
+  }
+}

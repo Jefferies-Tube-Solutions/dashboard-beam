@@ -1,19 +1,12 @@
-# Dashboard Beam development instructions
+# JTS Engineering Command
 
-## JTS Brand System
+This repository follows the [JTS Brand System v1.1.0](https://github.com/Jefferies-Tube-Solutions/jts-brand-system/tree/v1.1.0). Read its standing orders and applicable standards before changing product identity, documentation, configuration or runtime behavior.
 
-Use the [central JTS Brand System](https://github.com/Jefferies-Tube-Solutions/jts-brand-system)
-as the source of truth for design, product identity and documentation. Start with
-[VIS-001–003](https://github.com/Jefferies-Tube-Solutions/jts-brand-system/blob/v1.1.0/docs/README_LAYOUT.md)
-and [DOC-001](https://github.com/Jefferies-Tube-Solutions/jts-brand-system/blob/v1.1.0/docs/DOCUMENTATION_PROTOCOL.md).
-Use local copies of approved artwork with pinned provenance. Keep status badges
-truthful, preserve original attribution and maintain paired human and AI manuals
-for material changes. Check applicable Home Assistant guidance before changing
-HA surfaces or packaging. For visual changes, review rendered light/dark and
-mobile views and record the actual evidence in the pull request. If a brand
-requirement cannot be checked or an asset is awaiting approval, record that
-explicitly. Run JTS Brand Compliance before merging.
+- DOC-001 requires reciprocal human and AI manuals with matching slugs, status and version. Update them with any change to behavior or commissioning. Explain documentation-neutral changes in review.
+- VIS-001 requires the theme-aware JTS publisher art and a separate product hex. Preserve the recorded artwork provenance and current draft status.
+- HA-001 and HA-002 govern Home Assistant compatibility, HACS validation and service identity. Run the repository tests, documentation check, hassfest and HACS validation before commissioning.
+- Keep change history in the Operations Log. Public docs and code use English. State which checks used synthetic data and which ran against a live Home Assistant instance.
 
-Dashboard Beam is in development. Use a truthful draft status. Treat the product
-mark as pending until registered in the central Brand System. Add approved local
-artwork, paired product manuals and suitable visual checks as the product matures.
+For visual changes, check rendered light and dark themes and mobile views. Record
+what was verified in the pull request. Run `python scripts/validate_documentation.py`
+to check README status, approved artwork and paired manuals before merging.
