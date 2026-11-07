@@ -48,6 +48,7 @@ class DashboardBeamFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     raise ValueError("Invalid prefix")
                 self.dashboard_options = []
                 self.dashboard_paths = []
+                self.dashboard_titles = []
                 for side in SIDES:
                     async with self.endpoint(side).connect() as connection:
                         user = await connection.call("auth/current_user")
@@ -55,6 +56,9 @@ class DashboardBeamFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             raise BeamError("Administrator credentials required")
                         dashboards = await connection.call("lovelace/dashboards/list")
                         self.dashboard_paths.append({item.get("url_path") for item in dashboards})
+                        self.dashboard_titles.append({
+                            item["url_path"]: item["title"] for item in dashboards if item.get("url_path")
+                        })
                         self.dashboard_options.append({
                             item["url_path"]: f"{item['title']} ({item['url_path']})"
                             for item in dashboards
@@ -207,7 +211,18 @@ class DashboardBeamFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if (same_instance and prior[f"{side}_dashboard"] == self.data[f"{side}_dashboard"]
                         and (not view or not other or view == other)):
                     return self.async_abort(reason="overlap")
-        title = f"{self.data['local_dashboard']} ↔ {self.data['remote_dashboard']}"
-        if self.single_view:
-            title = f"{title} · {self.data['local_view']} ↔ {self.data['remote_view']}"
+        source, destination = SIDES[self.first], SIDES[1 - self.first]
+        title = self.dashboard_titles[self.first][self.data[f"{source}_dashboard"]]
+        target_path = self.data[f"{destination}_dashboard"]
+        target_title = self.data.get("creation", {}).get("dashboard_title") or (
+            self.dashboard_titles[1 - self.first].get(target_path, target_path)
+        )
+        source_path = self.data[f"{source}_view"]
+        target_view = self.data[f"{destination}_view"]
+        source_scope = self.source_views[source_path] if self.single_view else "All views"
+        target_scope = (
+            getattr(self, "destination_views", {}).get(target_view, f"/{target_view}")
+            if self.single_view else "All views"
+        )
+        self.data["service_name"] = f"{source_scope} → {target_title} · {target_scope}"
         return self.async_create_entry(title=title, data=self.data)

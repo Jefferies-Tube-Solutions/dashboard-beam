@@ -1,4 +1,4 @@
-<!-- JTS-DOC: human; slug: replication; status: draft; version: 0.1.0 -->
+<!-- JTS-DOC: human; slug: replication; status: draft; version: 0.1.0-beta.1 -->
 # Human Operations Manual — Dashboard replication
 
 Companion: [AI Systems Reference](../ai/replication.md)
@@ -6,11 +6,13 @@ Companion: [AI Systems Reference](../ai/replication.md)
 ## Commissioning
 
 1. Use two reachable Home Assistant 2026.11 instances and two administrator long-lived access tokens. Enter the tokens only in the Home Assistant setup dialog.
-2. Copy `custom_components/dashboard_beam` to the local instance's `custom_components` folder and restart it. Install Beam on the local instance alone.
+2. On the local instance, add `https://github.com/Jefferies-Tube-Solutions/dashboard-beam` to **Settings → Marketplace** as a custom integration, enable prereleases and install **v0.1.0-beta.1**. Restart if prompted.
 3. Open **Settings → Devices & services → Add integration → JTS - Dashboard Beam**. Enter both HA origins and the local entity prefix, including its separator. For example, use `cabin_` when remote `light.porch` appears locally as `light.cabin_porch`. Beam suggests a prefix when configured Remote Home Assistant entries agree on one nonempty value.
 4. Choose the source site, dashboard and scope. Select **Entire dashboard** or one view or subview. A view without a configured path appears with its positional URL, such as `/0`.
 5. Choose an existing destination dashboard or create a new one. For a single-view rule, select a destination view or enter a path for a new view. A new dashboard starts with administrator-only access and can receive either the whole source dashboard or just the selected view. A new view inherits the source view's content and title, if present.
 6. The first valid check copies from the selected source and creates the destination if requested. Afterward the rule synchronizes in both directions. Add another integration entry for another pair.
+
+The integration entry is named after the source dashboard. Its service row shows the selected view or **All views**, followed by the destination dashboard and scope. Each view pair has its own rule.
 
 ## Verification and recovery
 

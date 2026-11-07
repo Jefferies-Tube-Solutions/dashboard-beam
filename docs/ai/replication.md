@@ -1,4 +1,4 @@
-<!-- JTS-DOC: ai; slug: replication; status: draft; version: 0.1.0 -->
+<!-- JTS-DOC: ai; slug: replication; status: draft; version: 0.1.0-beta.1 -->
 # AI Systems Reference — Dashboard replication
 
 Companion: [Human Operations Manual](../guides/replication.md)
@@ -8,6 +8,8 @@ Companion: [Human Operations Manual](../guides/replication.md)
 Each config entry stores two HTTP(S) origin strings (`local_url`, `remote_url`), two administrator token strings (`local_token`, `remote_token`), two editable dashboard URL paths (`local_dashboard`, `remote_dashboard`), two view paths (`local_view`, `remote_view`, both empty for whole-dashboard sync), a local `prefix` matching `[a-z0-9_]*`, and `initial_source` (0 local, 1 remote). Overlapping scopes in this installation are rejected.
 
 An existing view uses its explicit path or its zero-based index as a string. `creation` is absent for existing pairs, `{"view": true}` to append a view, or `{"dashboard_title": "..."}` to create a storage dashboard. The destination is the opposite side from `initial_source`. A new view path must be a nonnumeric lowercase slug. A new dashboard path must contain a hyphen. Existing config entries keep their stored paths.
+
+New entries use the source dashboard title as the config entry title. Optional `service_name` stores the selected source scope, destination dashboard title and destination scope as a display string. Existing entries without it use their entry title.
 
 ## Execution and observability
 
@@ -21,4 +23,4 @@ An existing view uses its explicit path or its zero-based index as a string. `cr
 
 ## Boundaries and verification
 
-No conflict merge, image cleanup, custom card installation, device/area ID translation, or arbitrary template analysis in v0.1.0. Both instances must be able to serve their own assets. Local image URLs are restricted to known HA paths. Network, event delivery and setup compatibility still require live HA commissioning. See [synthetic tests](../../tests/test_sync.py) for the comparison contract.
+No conflict merge, image cleanup, custom card installation, device/area ID translation, or arbitrary template analysis in Beta 1. Both instances must be able to serve their own assets. Local image URLs are restricted to known HA paths. Network, event delivery and setup compatibility still require live HA commissioning. See [synthetic tests](../../tests/test_sync.py) for the comparison contract.
