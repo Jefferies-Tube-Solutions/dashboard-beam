@@ -1,7 +1,7 @@
 {
   "domain": "dashboard_beam",
   "name": "JTS - Dashboard Beam",
-  "codeowners": ["@NicolaiTandrup"],
+  "codeowners": ["@Jefferies-Tube-Solutions"],
   "config_flow": true,
   "dependencies": ["lovelace", "image_upload", "persistent_notification"],
   "documentation": "https://github.com/Jefferies-Tube-Solutions/dashboard-beam",
