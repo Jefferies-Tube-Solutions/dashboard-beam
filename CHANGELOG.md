@@ -1,6 +1,6 @@
 # Operations Log
 
-## v0.1.0-beta.1
+## v0.1.0-beta.2
 
 - Pair one editable dashboard or a view per rule, including positional views such as `/0`. Provision a new destination dashboard or append a view during the first valid sync.
 - Check both sides on startup and when a configured dashboard is saved, with a five-minute fallback.

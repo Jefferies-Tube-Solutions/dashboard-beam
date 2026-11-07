@@ -1,4 +1,4 @@
-<!-- JTS-DOC: human; slug: replication; status: draft; version: 0.1.0-beta.1 -->
+<!-- JTS-DOC: human; slug: replication; status: draft; version: 0.1.0-beta.2 -->
 # Human Operations Manual — Dashboard replication
 
 Companion: [AI Systems Reference](../ai/replication.md)
@@ -6,7 +6,7 @@ Companion: [AI Systems Reference](../ai/replication.md)
 ## Commissioning
 
 1. Use two reachable Home Assistant 2026.11 instances. Beam reads local dashboards and entity states directly.
-2. On the local instance, add `https://github.com/Jefferies-Tube-Solutions/dashboard-beam` to **Settings → Marketplace** as a custom integration, enable prereleases and install **v0.1.0-beta.1**. Restart if prompted.
+2. On the local instance, add `https://github.com/Jefferies-Tube-Solutions/dashboard-beam` to **Settings → Marketplace** as a custom integration, enable prereleases and install **v0.1.0-beta.2**. Restart if prompted.
 3. Open **Settings → Devices & services → Add integration → JTS - Dashboard Beam**. Select the existing **Remote Home-Assistant** connection if available. Beam reads its address, token and entity prefix. If the connection uses a nonadministrator account, choose manual access. On the remote instance, open the administrator profile → **Security → Long-lived access tokens → Create token**. Enter the token and remote base URL in the Beam dialog. Add the entity prefix if used.
 4. Choose the source site, dashboard and scope. Select **Entire dashboard** or one view or subview. A view without a configured path appears with its positional URL, such as `/0`.
 5. Choose an existing destination dashboard or create a new one. For a single-view rule, select a destination view or enter a path for a new view. A new dashboard starts with administrator-only access and can receive either the whole source dashboard or just the selected view. A new view inherits the source view's content and title, if present.
