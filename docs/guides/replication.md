@@ -8,8 +8,9 @@ Companion: [AI Systems Reference](../ai/replication.md)
 1. Use two reachable Home Assistant 2026.11 instances and two administrator long-lived access tokens. Enter the tokens only in the Home Assistant setup dialog.
 2. Copy `custom_components/dashboard_beam` to the local instance's `custom_components` folder and restart it. Install Beam on the local instance alone.
 3. Open **Settings → Devices & services → Add integration → JTS - Dashboard Beam**. Enter both HA origins and the local entity prefix, including its separator. For example, use `cabin_` when remote `light.porch` appears locally as `light.cabin_porch`. Beam suggests a prefix when configured Remote Home Assistant entries agree on one nonempty value.
-4. Select an editable dashboard on both sides. Choose the whole dashboard or one existing view with an explicit path on each side. Create any destination view in HA before configuring Beam.
-5. Choose the initial source. The first automatic check copies that version if the content differs. Add another integration entry for another pair.
+4. Choose the source site, dashboard and scope. Select **Entire dashboard** or one view or subview. A view without a configured path appears with its positional URL, such as `/0`.
+5. Choose an existing destination dashboard or create a new one. For a single-view rule, select a destination view or enter a path for a new view. A new dashboard starts with administrator-only access and can receive either the whole source dashboard or just the selected view. A new view inherits the source view's content and title, if present.
+6. The first valid check copies from the selected source and creates the destination if requested. Afterward the rule synchronizes in both directions. Add another integration entry for another pair.
 
 ## Verification and recovery
 
@@ -17,4 +18,4 @@ Save a change to a card on either side. Beam requests a check when Home Assistan
 
 Restore missing entities or repair the connection and wait for the next check. If both sides changed, bring the pair to the same intended content manually to resume. To roll back, disable the rule before restoring a dashboard backup. Removing an entry removes Beam's saved comparison state. Dashboard and image backups are the operator's responsibility.
 
-Storage dashboards with explicit view paths are the test target. Review navigation links, device and area IDs, installed custom cards and template-generated entity references before use across sites. The draft is awaiting live verification.
+Positional URLs follow the order of the views. If you rearrange views, verify that a rule using a positional URL still points to the intended view. Review navigation links, device and area IDs, installed custom cards and template-generated entity references before use across sites. The draft is awaiting live verification.

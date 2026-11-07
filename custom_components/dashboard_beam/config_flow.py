@@ -15,8 +15,12 @@ from homeassistant.helpers.selector import (
 
 from .client import BeamError, Endpoint, base_url
 from .const import DOMAIN
+from .sync import view_path
 
 WHOLE = "__whole__"
+NEW = "__new__"
+SIDES = ("local", "remote")
+SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 
 
 def picker(options):
@@ -43,21 +47,23 @@ class DashboardBeamFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if not re.fullmatch(r"[a-z0-9_]*", self.data["prefix"]):
                     raise ValueError("Invalid prefix")
                 self.dashboard_options = []
-                for side in ("local", "remote"):
+                self.dashboard_paths = []
+                for side in SIDES:
                     async with self.endpoint(side).connect() as connection:
                         user = await connection.call("auth/current_user")
                         if not user.get("is_admin"):
                             raise BeamError("Administrator credentials required")
                         dashboards = await connection.call("lovelace/dashboards/list")
+                        self.dashboard_paths.append({item.get("url_path") for item in dashboards})
                         self.dashboard_options.append({
                             item["url_path"]: f"{item['title']} ({item['url_path']})"
                             for item in dashboards
                             if item.get("mode") == "storage" and item.get("url_path")
                         })
-                if not all(self.dashboard_options):
+                if not any(self.dashboard_options):
                     errors["base"] = "no_dashboards"
                 else:
-                    return await self.async_step_dashboards()
+                    return await self.async_step_source()
             except ValueError:
                 errors["base"] = "invalid_input"
             except (BeamError, aiohttp.ClientError, asyncio.TimeoutError):
@@ -78,56 +84,130 @@ class DashboardBeamFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return Endpoint(async_get_clientsession(self.hass), self.data[f"{side}_url"],
                         self.data[f"{side}_token"], side.capitalize())
 
-    async def async_step_dashboards(self, user_input=None):
-        errors = {}
+    async def async_step_source(self, user_input=None):
         if user_input:
-            self.data.update(user_input)
-            try:
-                self.view_options = []
-                for side in ("local", "remote"):
-                    async with self.endpoint(side).connect() as connection:
-                        config = await connection.read(self.data[f"{side}_dashboard"])
-                    self.view_options.append({WHOLE: "Entire dashboard", **{
-                        view["path"]: f"{view.get('title') or view['path']} ({view['path']})"
-                        for view in config["views"] if view.get("path")
-                    }})
-                return await self.async_step_views()
-            except (BeamError, aiohttp.ClientError, asyncio.TimeoutError):
-                errors["base"] = "cannot_connect"
-        return self.async_show_form(step_id="dashboards", errors=errors, data_schema=vol.Schema({
-            vol.Required("local_dashboard"): picker(self.dashboard_options[0]),
-            vol.Required("remote_dashboard"): picker(self.dashboard_options[1]),
+            self.first = int(user_input["initial_source"])
+            self.data["initial_source"] = self.first
+            return await self.async_step_source_dashboard()
+        options = {str(i): f"{side.capitalize()} Home Assistant"
+                   for i, side in enumerate(SIDES) if self.dashboard_options[i]}
+        return self.async_show_form(step_id="source", data_schema=vol.Schema({
+            vol.Required("initial_source"): picker(options),
         }))
 
-    async def async_step_views(self, user_input=None):
+    async def view_options(self, side, dashboard):
+        async with self.endpoint(side).connect() as connection:
+            config = await connection.read(dashboard)
+        return {
+            path: f"{view.get('title') or f'View {i + 1}'} (/{path})"
+            for i, view in enumerate(config["views"])
+            if (path := view_path(view, i))
+        }
+
+    async def async_step_source_dashboard(self, user_input=None):
         errors = {}
         if user_input:
-            local, remote = user_input["local_view"], user_input["remote_view"]
-            if (local == WHOLE) != (remote == WHOLE):
-                errors["base"] = "mismatched_scope"
+            side = SIDES[self.first]
+            dashboard = user_input["dashboard"]
+            try:
+                self.source_views = await self.view_options(side, dashboard)
+            except (BeamError, aiohttp.ClientError, asyncio.TimeoutError):
+                errors["base"] = "cannot_connect"
             else:
-                self.data.update({
-                    "local_view": "" if local == WHOLE else local,
-                    "remote_view": "" if remote == WHOLE else remote,
-                    "initial_source": int(user_input["initial_source"]),
-                })
-                for entry in self._async_current_entries():
-                    for side in ("local", "remote"):
-                        prior = entry.data
-                        view = self.data[f"{side}_view"]
-                        other = prior.get(f"{side}_view", "")
-                        same_instance = side == "local" or (
-                            prior["remote_url"].lower() == self.data["remote_url"].lower()
-                        )
-                        if (same_instance and prior[f"{side}_dashboard"] == self.data[f"{side}_dashboard"]
-                                and (not view or not other or view == other)):
-                            return self.async_abort(reason="overlap")
-                title = f"{self.data['local_dashboard']} ↔ {self.data['remote_dashboard']}"
-                if local != WHOLE:
-                    title = f"{title} · {local} ↔ {remote}"
-                return self.async_create_entry(title=title, data=self.data)
-        return self.async_show_form(step_id="views", errors=errors, data_schema=vol.Schema({
-            vol.Required("local_view", default=WHOLE): picker(self.view_options[0]),
-            vol.Required("remote_view", default=WHOLE): picker(self.view_options[1]),
-            vol.Required("initial_source"): picker({"0": "Local Home Assistant", "1": "Remote Home Assistant"}),
+                self.data[f"{side}_dashboard"] = dashboard
+                return await self.async_step_source_view()
+        return self.async_show_form(step_id="source_dashboard", errors=errors, data_schema=vol.Schema({
+            vol.Required("dashboard"): picker(self.dashboard_options[self.first]),
         }))
+
+    async def async_step_source_view(self, user_input=None):
+        if user_input:
+            self.single_view = user_input["view"] != WHOLE
+            self.data[f"{SIDES[self.first]}_view"] = user_input["view"] if self.single_view else ""
+            return await self.async_step_destination_dashboard()
+        return self.async_show_form(step_id="source_view", data_schema=vol.Schema({
+            vol.Required("view", default=WHOLE): picker({WHOLE: "Entire dashboard", **self.source_views}),
+        }))
+
+    async def async_step_destination_dashboard(self, user_input=None):
+        errors = {}
+        if user_input:
+            side = SIDES[1 - self.first]
+            dashboard = user_input["dashboard"]
+            self.new_dashboard = dashboard == NEW
+            if self.new_dashboard:
+                return await self.async_step_new_destination()
+            self.data[f"{side}_dashboard"] = dashboard
+            if not self.single_view:
+                self.data[f"{side}_view"] = ""
+                return self.finish()
+            try:
+                self.destination_views = await self.view_options(side, dashboard)
+            except (BeamError, aiohttp.ClientError, asyncio.TimeoutError):
+                errors["base"] = "cannot_connect"
+            else:
+                return await self.async_step_destination_view()
+        return self.async_show_form(step_id="destination_dashboard", errors=errors, data_schema=vol.Schema({
+            vol.Required("dashboard"): picker({
+                **self.dashboard_options[1 - self.first], NEW: "Create a new dashboard",
+            }),
+        }))
+
+    async def async_step_destination_view(self, user_input=None):
+        if user_input:
+            view = user_input["view"]
+            if view == NEW:
+                return await self.async_step_new_destination()
+            self.data[f"{SIDES[1 - self.first]}_view"] = view
+            return self.finish()
+        return self.async_show_form(step_id="destination_view", data_schema=vol.Schema({
+            vol.Required("view"): picker({**self.destination_views, NEW: "Create a new view"}),
+        }))
+
+    async def async_step_new_destination(self, user_input=None):
+        errors = {}
+        target = 1 - self.first
+        side = SIDES[target]
+        if user_input:
+            dashboard = user_input.get("dashboard_path", "").strip()
+            title = user_input.get("dashboard_title", "").strip()
+            view = user_input.get("view_path", "").strip()
+            if self.new_dashboard and (
+                not title or not SLUG.fullmatch(dashboard) or "-" not in dashboard
+            ):
+                errors["base"] = "invalid_dashboard_path"
+            elif self.new_dashboard and dashboard in self.dashboard_paths[target]:
+                errors["base"] = "destination_exists"
+            elif self.single_view and (not SLUG.fullmatch(view) or view.isdecimal()):
+                errors["base"] = "invalid_view_path"
+            elif self.single_view and not self.new_dashboard and view in self.destination_views:
+                errors["base"] = "destination_exists"
+            else:
+                if self.new_dashboard:
+                    self.data[f"{side}_dashboard"] = dashboard
+                self.data[f"{side}_view"] = view
+                self.data["creation"] = {"dashboard_title": title} if self.new_dashboard else {"view": True}
+                return self.finish()
+        fields = {}
+        if self.new_dashboard:
+            fields.update({vol.Required("dashboard_title"): str, vol.Required("dashboard_path"): str})
+        if self.single_view:
+            fields[vol.Required("view_path")] = str
+        return self.async_show_form(step_id="new_destination", errors=errors, data_schema=vol.Schema(fields))
+
+    def finish(self):
+        for entry in self._async_current_entries():
+            for side in SIDES:
+                prior = entry.data
+                view = self.data[f"{side}_view"]
+                other = prior.get(f"{side}_view", "")
+                same_instance = side == "local" or (
+                    prior["remote_url"].lower() == self.data["remote_url"].lower()
+                )
+                if (same_instance and prior[f"{side}_dashboard"] == self.data[f"{side}_dashboard"]
+                        and (not view or not other or view == other)):
+                    return self.async_abort(reason="overlap")
+        title = f"{self.data['local_dashboard']} ↔ {self.data['remote_dashboard']}"
+        if self.single_view:
+            title = f"{title} · {self.data['local_view']} ↔ {self.data['remote_view']}"
+        return self.async_create_entry(title=title, data=self.data)

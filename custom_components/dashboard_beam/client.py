@@ -10,6 +10,10 @@ class BeamError(Exception):
     """A rule cannot be completed."""
 
 
+class DashboardNotFound(BeamError):
+    """Home Assistant has no saved configuration at this dashboard path."""
+
+
 IMAGE = re.compile(r"/api/image/serve/([a-f0-9]{32})/(?:original|[^/?#]+)")
 MEDIA = re.compile(r"media-source://image_upload/([a-f0-9]{32})")
 IMAGE_TYPES = {"image/png": "png", "image/jpeg": "jpg", "image/gif": "gif"}
@@ -97,6 +101,8 @@ class Connection:
             result = await self.ws.receive_json()
         if result.get("id") != self.command_id or not result.get("success"):
             code = result.get("error", {}).get("code", "unexpected_result")
+            if command == "lovelace/config" and code == "config_not_found":
+                raise DashboardNotFound(f"{self.endpoint.label}: dashboard configuration not found")
             raise BeamError(f"{self.endpoint.label}: {command} failed ({code})")
         return result.get("result")
 

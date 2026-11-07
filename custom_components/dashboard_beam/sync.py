@@ -5,7 +5,7 @@ from hashlib import sha256
 import json
 import re
 
-from .client import BeamError, IMAGE, MEDIA
+from .client import BeamError, DashboardNotFound, IMAGE, MEDIA
 
 ENTITY = re.compile(r"\b[a-z_][a-z0-9_]*\.[a-z0-9_]+\b")
 ENTITY_FIELDS = {"entity", "entity_id", "entities"}
@@ -20,24 +20,41 @@ def digest(value):
     return sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
 
+def view_path(view, index):
+    """Use the URL Home Assistant exposes, including positional routes."""
+    return view.get("path") or str(index)
+
+
+def view_index(config, path):
+    matches = [index for index, view in enumerate(config["views"])
+               if view_path(view, index) == path]
+    if len(matches) > 1:
+        raise BeamError(f"Ambiguous view path {path!r}")
+    return matches[0] if matches else None
+
+
 def select(config, path):
     if not path:
         return config
-    views = [view for view in config["views"] if view.get("path") == path]
-    if len(views) != 1:
+    index = view_index(config, path)
+    if index is None:
         raise BeamError(f"Expected exactly one view with path {path!r}")
-    return {key: value for key, value in views[0].items() if key != "path"}
+    return {key: value for key, value in config["views"][index].items() if key != "path"}
 
 
-def replace(config, path, value):
+def replace(config, path, value, *, append=False):
     if not path:
         return value
     result = deepcopy(config)
-    for index, view in enumerate(result["views"]):
-        if view.get("path") == path:
-            result["views"][index] = {**value, "path": path}
-            return result
-    raise BeamError(f"Destination view {path!r} no longer exists")
+    index = view_index(result, path)
+    if append and index is None:
+        result["views"].append({**value, "path": path})
+    elif index is not None and not append:
+        existing = result["views"][index]
+        result["views"][index] = {**value, **({"path": existing["path"]} if "path" in existing else {})}
+    else:
+        raise BeamError(f"Destination view {path!r} changed during sync")
+    return result
 
 
 def choose(current, previous, first):
@@ -143,14 +160,45 @@ class Normalizer:
 async def reconcile(connections, config, state, store):
     paths = (config["local_dashboard"], config["remote_dashboard"])
     views = (config.get("local_view"), config.get("remote_view"))
-    configs = [await connection.read(path) for connection, path in zip(connections, paths)]
-    selected = [select(item, view) for item, view in zip(configs, views)]
+    first = config["initial_source"]
+    target = 1 - first
+    creation = config.get("creation") if state.get("baseline") is None else None
+    new_dashboard = creation and creation.get("dashboard_title")
+    target_conn = connections[target]
+    if new_dashboard:
+        existing = await dashboard_record(target_conn, paths[target])
+        if existing and existing.get("id") != state.get("created_dashboard"):
+            raise BeamError(f"Destination dashboard {paths[target]!r} already exists")
+
+    async def read_side(i):
+        try:
+            return await connections[i].read(paths[i])
+        except DashboardNotFound:
+            if new_dashboard and i == target:
+                return None
+            raise
+
+    configs = [await read_side(i) for i in range(2)]
+    selected = []
+    for i, (item, view) in enumerate(zip(configs, views)):
+        if i == target and creation and (item is None or (view and view_index(item, view) is None)):
+            selected.append(None)
+        else:
+            selected.append(select(item, view))
     states = [{item["entity_id"] for item in await conn.call("get_states")} for conn in connections]
     images = state.setdefault("images", [{}, {}])
     normalizer = Normalizer([conn.endpoint for conn in connections], states, config["prefix"], images)
     normalized = [await normalizer.normalize(item, i) for i, item in enumerate(selected)]
     current = [digest(item) for item in normalized]
-    source = choose(current, state.get("baseline"), config["initial_source"])
+    if creation and selected[target] is not None:
+        pending = state.get("pending_creation")
+        if current[target] != pending:
+            raise BeamError("The requested destination already contains a configuration")
+        # A previous save succeeded before the baseline could be persisted.
+        state["baseline"] = [pending, pending]
+        await store.async_save(state)
+        return
+    source = first if creation else choose(current, state.get("baseline"), first)
     if source is None:
         missing = normalizer.missing
     else:
@@ -173,12 +221,34 @@ async def reconcile(connections, config, state, store):
                         del images[destination][hash_]
         value = await normalizer.materialize(normalized[source], destination)
         await store.async_save(state)
-        for i, (connection, path) in enumerate(zip(connections, paths)):
-            if await connection.read(path) != configs[i]:
+        for i in range(2):
+            if await read_side(i) != configs[i]:
                 raise BeamError("Dashboard changed during sync. Beam will retry.")
-        new = replace(configs[destination], views[destination], value)
+        if new_dashboard:
+            record = await dashboard_record(target_conn, paths[target])
+            if record is None:
+                record = await target_conn.call(
+                    "lovelace/dashboards/create", url_path=paths[target], mode="storage",
+                    title=new_dashboard, require_admin=True, show_in_sidebar=True,
+                )
+                state["created_dashboard"] = record["id"]
+                await store.async_save(state)
+            elif record["id"] != state.get("created_dashboard"):
+                raise BeamError(f"Destination dashboard {paths[target]!r} already exists")
+            if await read_side(target) != configs[target]:
+                raise BeamError("Destination dashboard changed during creation. Beam will retry.")
+        new = replace(configs[destination] or {"views": []}, views[destination], value,
+                      append=bool(creation and views[destination]))
+        if creation:
+            state["pending_creation"] = current[source]
+            await store.async_save(state)
         await connections[destination].call("lovelace/config/save", url_path=paths[destination], config=new)
         current[destination] = current[source]
     if state.get("baseline") != current:
         state["baseline"] = current
         await store.async_save(state)
+
+
+async def dashboard_record(connection, path):
+    dashboards = await connection.call("lovelace/dashboards/list")
+    return next((item for item in dashboards if item.get("url_path") == path), None)
