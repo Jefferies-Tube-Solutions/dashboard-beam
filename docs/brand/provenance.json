@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "product_source": "assets/products/dashboard-beam/v1/manifest.json",
+  "publisher_source": "jts-brand-system v1.1.0 assets/jts/v4",
+  "export_method": "Proportional bicubic resize of JTS renders",
+  "files": [
+    {
+      "path": "custom_components/dashboard_beam/brand/dark_logo.png",
+      "bytes": 91803,
+      "sha256": "0a0c6ff6380f7a3bc5c28d4551846db73525e182a8463b6ca7cbe820d72b98fd",
+      "width": 894,
+      "height": 240,
+      "bit_depth": 8,
+      "color_type": 6
+    },
+    {
+      "path": "custom_components/dashboard_beam/brand/icon.png",
+      "bytes": 68768,
+      "sha256": "e4b14a8daaa4e9dd914b4e0412b6ff53e209bbdaadd5c10e16f85ff629a2176d",
+      "width": 256,
+      "height": 256,
+      "bit_depth": 8,
+      "color_type": 6
+    },
+    {
+      "path": "custom_components/dashboard_beam/brand/icon@2x.png",
+      "bytes": 229870,
+      "sha256": "e5e0a9f6c4233a2a2acf7fc04ec801b7786831aacc1d8435e6cf03058b1364ac",
+      "width": 512,
+      "height": 512,
+      "bit_depth": 8,
+      "color_type": 6
+    },
+    {
+      "path": "docs/brand/jts-deep-space-transparent.png",
+      "bytes": 55255,
+      "sha256": "3ea4532f50530d5ebf19c53cb12c2ef999e578345cbe04239805ff1a03420e86",
+      "width": 560,
+      "height": 176,
+      "bit_depth": 8,
+      "color_type": 6
+    },
+    {
+      "path": "docs/brand/jts-white-transparent.png",
+      "bytes": 57622,
+      "sha256": "b66b645f30265d93a68d5846aefb438290f16399f1c918741a1dbfc9aa4f52ca",
+      "width": 560,
+      "height": 176,
+      "bit_depth": 8,
+      "color_type": 6
+    }
+  ]
+}
