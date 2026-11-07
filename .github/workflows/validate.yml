@@ -4,7 +4,7 @@ permissions:
   contents: read
 jobs:
   documentation:
-    name: JTS documentation
+    name: Validate JTS design and documentation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
