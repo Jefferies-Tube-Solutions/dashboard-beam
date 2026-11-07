@@ -4,6 +4,7 @@ from copy import deepcopy
 from hashlib import sha256
 import json
 import re
+import unicodedata
 
 from .client import BeamError, DashboardNotFound, IMAGE, MEDIA
 
@@ -23,6 +24,25 @@ def digest(value):
 def view_path(view, index):
     """Use the URL Home Assistant exposes, including positional routes."""
     return view.get("path") or str(index)
+
+
+def destination_path(name, occupied, *, dashboard=False):
+    """Generate a valid, unused route without requiring a URL from the user."""
+    transliterated = name.lower().translate(str.maketrans({"æ": "ae", "ø": "oe", "å": "aa"}))
+    ascii_name = unicodedata.normalize("NFKD", transliterated).encode("ascii", "ignore").decode()
+    base = re.sub(r"[^a-z0-9]+", "-", ascii_name).strip("-")
+    if not base:
+        base = "beam-dashboard" if dashboard else "beam-view"
+    elif dashboard and "-" not in base:
+        base = f"{base}-dashboard"
+    elif not dashboard and base.isdecimal():
+        base = f"view-{base}"
+    candidate = base
+    suffix = 2
+    while candidate in occupied:
+        candidate = f"{base}-{suffix}"
+        suffix += 1
+    return candidate
 
 
 def view_index(config, path):
@@ -163,6 +183,7 @@ async def reconcile(connections, config, state, store):
     first = config["initial_source"]
     target = 1 - first
     creation = config.get("creation") if state.get("baseline") is None else None
+    named_view = config.get("creation", {}).get("view_title")
     new_dashboard = creation and creation.get("dashboard_title")
     target_conn = connections[target]
     if new_dashboard:
@@ -189,6 +210,10 @@ async def reconcile(connections, config, state, store):
     images = state.setdefault("images", [{}, {}])
     normalizer = Normalizer([conn.endpoint for conn in connections], states, config["prefix"], images)
     normalized = [await normalizer.normalize(item, i) for i, item in enumerate(selected)]
+    if named_view:
+        for item in normalized:
+            if item is not None:
+                item.pop("title", None)
     current = [digest(item) for item in normalized]
     if creation and selected[target] is not None:
         pending = state.get("pending_creation")
@@ -220,6 +245,12 @@ async def reconcile(connections, config, state, store):
                     if sha256(data).hexdigest() != hash_:
                         del images[destination][hash_]
         value = await normalizer.materialize(normalized[source], destination)
+        if named_view:
+            existing_view = selected[destination]
+            if existing_view is not None and "title" in existing_view:
+                value["title"] = existing_view["title"]
+            elif existing_view is None:
+                value["title"] = named_view
         await store.async_save(state)
         for i in range(2):
             if await read_side(i) != configs[i]:

@@ -174,6 +174,27 @@ class ReplicationTest(unittest.TestCase):
         self.assertEqual(self.local.config["views"][2]["cards"][0]["entity"], self.local.entity)
         self.assertEqual(self.local.writes, 1)
 
+    def test_generated_paths_handle_danish_names_and_collisions(self):
+        self.assertEqual(sync.destination_path("Blåbær Ø", {"blaabaer-oe"}, dashboard=True),
+                         "blaabaer-oe-2")
+        self.assertEqual(sync.destination_path("Sommerhus", (), dashboard=True), "sommerhus-dashboard")
+        self.assertEqual(sync.destination_path("0", ()), "view-0")
+        self.assertEqual(sync.destination_path("🌲", ()), "beam-view")
+
+    @synchronous_test
+    async def test_named_destination_does_not_rename_source_on_reverse_sync(self):
+        self.rule.update(remote_view="test-view", creation={"view": True, "view_title": "Test view"})
+        await self.run_rule()
+        await self.run_rule()
+        new_view = self.remote.config["views"][2]
+        self.assertEqual(new_view["title"], "Test view")
+        self.assertEqual(self.remote.writes, 1)
+        new_view["cards"][0]["icon"] = "mdi:lightbulb"
+        await self.run_rule()
+        source = self.local.config["views"][0]
+        self.assertEqual(source["title"], "Old")
+        self.assertEqual(source["cards"][0]["icon"], "mdi:lightbulb")
+
     @synchronous_test
     async def test_new_dashboard_can_receive_a_whole_dashboard_or_one_view(self):
         for whole in (True, False):

@@ -1,4 +1,4 @@
-<!-- JTS-DOC: ai; slug: replication; status: draft; version: 0.1.0-beta.2 -->
+<!-- JTS-DOC: ai; slug: replication; status: draft; version: 0.1.0-beta.3 -->
 # AI Systems Reference — Dashboard replication
 
 Companion: [Human Operations Manual](../guides/replication.md)
@@ -9,7 +9,7 @@ Each config entry stores two editable dashboard URL paths (`local_dashboard`, `r
 
 Beam reads and saves existing local dashboards through Lovelace storage and reads local entity IDs from the state machine. Local uploads use Home Assistant's image collection. `local_url` and `local_token` are used only to register a new local dashboard through the WebSocket API. Legacy entries with both tokens continue to load. Overlapping scopes in this installation are rejected.
 
-An existing view uses its explicit path or its zero-based index as a string. `creation` is absent for existing pairs, `{"view": true}` to append a view, or `{"dashboard_title": "..."}` to create a storage dashboard. The destination is the opposite side from `initial_source`. A new view path must be a nonnumeric lowercase slug. A new dashboard path must contain a hyphen. Existing config entries keep their stored paths.
+An existing view uses its explicit path or its zero-based index as a string. `creation` is absent for existing pairs, `{"view": true, "view_title": "..."}` to append a named view, or `{"dashboard_title": "..."}` to create a storage dashboard. The destination is the opposite side from `initial_source`. The UI accepts a name and derives a lowercase route, adding a suffix for known collisions. A single view copied into a new dashboard derives its route from the source route. For named view creation, each side retains its own view title during later synchronization. Existing config entries keep their stored paths and title behavior.
 
 New entries use the source dashboard title as the config entry title. Optional `service_name` stores the selected source scope, destination dashboard title and destination scope as a display string. Existing entries without it use their entry title.
 
@@ -25,4 +25,4 @@ New entries use the source dashboard title as the config entry title. Optional `
 
 ## Boundaries and verification
 
-No conflict merge, image cleanup, custom card installation, device/area ID translation, or arbitrary template analysis in Beta 2. Both instances must be able to serve their own assets. Local image URLs are restricted to known HA paths. Network, event delivery and setup compatibility still require live HA commissioning. See [synthetic tests](../../tests/test_sync.py) for the comparison contract.
+No conflict merge, image cleanup, custom card installation, device/area ID translation, or arbitrary template analysis in Beta 3. Both instances must be able to serve their own assets. Local image URLs are restricted to known HA paths. Network, event delivery and setup compatibility still require live HA commissioning. See [synthetic tests](../../tests/test_sync.py) for the comparison contract.

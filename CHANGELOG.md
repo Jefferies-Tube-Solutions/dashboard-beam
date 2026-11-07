@@ -1,5 +1,10 @@
 # Operations Log
 
+## v0.1.0-beta.3
+
+- Ask only for the new destination name and generate the dashboard and view URL paths automatically.
+- Preserve the chosen name of a new view in an existing dashboard during replication.
+
 ## v0.1.0-beta.2
 
 - Pair one editable dashboard or a view per rule, including positional views such as `/0`. Provision a new destination dashboard or append a view during the first valid sync.
