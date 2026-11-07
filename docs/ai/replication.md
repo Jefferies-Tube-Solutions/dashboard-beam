@@ -5,7 +5,9 @@ Companion: [Human Operations Manual](../guides/replication.md)
 
 ## Configuration contract
 
-Each config entry stores two HTTP(S) origin strings (`local_url`, `remote_url`), two administrator token strings (`local_token`, `remote_token`), two editable dashboard URL paths (`local_dashboard`, `remote_dashboard`), two view paths (`local_view`, `remote_view`, both empty for whole-dashboard sync), a local `prefix` matching `[a-z0-9_]*`, and `initial_source` (0 local, 1 remote). Overlapping scopes in this installation are rejected.
+Each config entry stores two editable dashboard URL paths (`local_dashboard`, `remote_dashboard`), two view paths (`local_view`, `remote_view`, both empty for whole-dashboard sync), and `initial_source` (0 local, 1 remote). Manual remote access stores `remote_url`, `remote_token` and the normalized `prefix`. Reused access stores `remote_entry_id` and setup-time origin/prefix metadata. It resolves the selected entry's host, port, secure flag, access token and entity prefix at runtime. The remote token is not copied into Beam's entry. Disabled or removed entries block the rule. Prefixes are normalized to lowercase and checked against `[a-z0-9_]*`. Remote access must authenticate as an administrator during setup. TLS certificate checks remain enabled.
+
+Beam reads and saves existing local dashboards through Lovelace storage and reads local entity IDs from the state machine. Local uploads use Home Assistant's image collection. `local_url` and `local_token` are used only to register a new local dashboard through the WebSocket API. Legacy entries with both tokens continue to load. Overlapping scopes in this installation are rejected.
 
 An existing view uses its explicit path or its zero-based index as a string. `creation` is absent for existing pairs, `{"view": true}` to append a view, or `{"dashboard_title": "..."}` to create a storage dashboard. The destination is the opposite side from `initial_source`. A new view path must be a nonnumeric lowercase slug. A new dashboard path must contain a hyphen. Existing config entries keep their stored paths.
 

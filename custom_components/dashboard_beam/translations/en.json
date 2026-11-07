@@ -2,15 +2,23 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connect two Home Assistant instances",
-        "description": "Install Beam on the local instance. Enter administrator tokens and confirm the entity prefix used on that instance.",
+        "title": "Choose a Remote Home-Assistant connection",
+        "description": "Beam uses this Home Assistant directly. Select an existing connection to reuse its remote address, access token and entity prefix.",
+        "data": {"remote_entry": "Remote Home-Assistant connection"}
+      },
+      "manual": {
+        "title": "Connect to another Home Assistant",
+        "description": "On the remote Home Assistant, sign in as an administrator. Open your profile, select Security, then create a token under Long-lived access tokens. Paste it below and enter the remote base URL and optional entity prefix.",
         "data": {
-          "local_url": "Local Home Assistant URL",
-          "local_token": "Local access token",
           "remote_url": "Remote Home Assistant URL",
           "remote_token": "Remote access token",
           "prefix": "Local entity prefix"
         }
+      },
+      "local_creation": {
+        "title": "Authorize creation of a local dashboard",
+        "description": "A brand-new dashboard on this instance uses Home Assistant's dashboard creation API. In your local administrator profile, open Security and create a token under Long-lived access tokens. An existing local dashboard or a new view within one does not need this step.",
+        "data": {"local_url": "Local Home Assistant URL", "local_token": "Local administrator token"}
       },
       "source": {
         "title": "Choose the first sync source",
@@ -40,8 +48,9 @@
       }
     },
     "error": {
-      "cannot_connect": "Could not read both instances. Check the URLs and administrator tokens.",
-      "invalid_input": "Enter two distinct Home Assistant URLs and a valid entity prefix.",
+      "cannot_connect": "Could not read both instances. Check the address, connection and administrator token. If needed, select manual remote access.",
+      "remote_not_admin": "The remote account cannot manage dashboards. Select manual access and use a remote administrator's token.",
+      "invalid_input": "Enter a Home Assistant base URL and a valid entity prefix.",
       "invalid_dashboard_path": "Enter a title and a lowercase dashboard path containing a hyphen, such as cabin-copy.",
       "invalid_view_path": "Enter a lowercase view path, such as home-4. A path containing only digits is reserved for positional views.",
       "destination_exists": "The destination path is already in use.",

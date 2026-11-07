@@ -16,6 +16,8 @@ from homeassistant.helpers.storage import Store
 
 from .client import BeamError, Endpoint
 from .const import DOMAIN, INTERVAL_SECONDS
+from .local import LocalEndpoint
+from .remote import resolve_remote
 from .sync import reconcile
 
 LOGGER = logging.getLogger(__name__)
@@ -45,8 +47,15 @@ class Rule:
 
     def endpoint(self, side):
         data = self.entry.data
-        return Endpoint(async_get_clientsession(self.hass), data[f"{side}_url"],
-                        data[f"{side}_token"], side.capitalize())
+        session = async_get_clientsession(self.hass)
+        if side == "local":
+            dashboard_api = (
+                Endpoint(session, data["local_url"], data["local_token"], "Local")
+                if data.get("local_url") and data.get("local_token") else None
+            )
+            return LocalEndpoint(self.hass, dashboard_api)
+        url, token, _ = resolve_remote(self.hass, data)
+        return Endpoint(session, url, token, "Remote")
 
     @callback
     def local_dashboard_updated(self, event):
@@ -75,7 +84,10 @@ class Rule:
                     connections = []
                     for side in ("local", "remote"):
                         connections.append(await stack.enter_async_context(self.endpoint(side).connect()))
-                    await reconcile(connections, data, self.state, self.store)
+                    await reconcile(
+                        connections, {**data, "prefix": resolve_remote(self.hass, data)[2]},
+                        self.state, self.store,
+                    )
             except BeamError as exc:
                 error = str(exc)
             except (TimeoutError, aiohttp.ClientError, ValueError) as exc:

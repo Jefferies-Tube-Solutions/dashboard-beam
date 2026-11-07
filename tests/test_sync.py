@@ -14,6 +14,7 @@ package.__path__ = [str(Path(__file__).resolve().parents[1] / "custom_components
 sys.modules[PACKAGE] = package
 sync = importlib.import_module(f"{PACKAGE}.sync")
 client = importlib.import_module(f"{PACKAGE}.client")
+remote = importlib.import_module(f"{PACKAGE}.remote")
 
 
 class FakeHome:
@@ -61,6 +62,32 @@ class FakeHome:
 class FakeStore:
     async def async_save(self, state):
         self.saved = deepcopy(state)
+
+
+class RemoteConnectionTest(unittest.TestCase):
+    def test_existing_connection_uses_current_settings_and_normalizes_prefix(self):
+        entry = SimpleNamespace(
+            domain="remote_homeassistant", disabled_by=None,
+            data={"host": "example.local", "port": 8443, "secure": True, "access_token": "test-token"},
+            options={"entity_prefix": "IA_", "entity_friendly_name_prefix": "IA-"},
+        )
+        hass = SimpleNamespace(config_entries=SimpleNamespace(async_get_entry=lambda _: entry))
+        rule = {"remote_entry_id": "selected-entry"}
+        self.assertEqual(
+            remote.resolve_remote(hass, rule), ("https://example.local:8443", "test-token", "ia_")
+        )
+        self.assertEqual(rule, {"remote_entry_id": "selected-entry"})
+        entry.data["access_token"] = "rotated-test-token"
+        self.assertEqual(remote.resolve_remote(hass, rule)[1], "rotated-test-token")
+        entry.disabled_by = "user"
+        with self.assertRaisesRegex(client.BeamError, "unavailable"):
+            remote.resolve_remote(hass, rule)
+
+    def test_manual_prefix_allows_uppercase_and_empty_values(self):
+        self.assertEqual(remote.normalize_prefix(" IA_ "), "ia_")
+        self.assertEqual(remote.normalize_prefix(None), "")
+        with self.assertRaises(ValueError):
+            remote.normalize_prefix("IA-")
 
 
 def synchronous_test(test):

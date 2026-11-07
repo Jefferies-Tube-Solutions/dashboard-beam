@@ -7,3 +7,4 @@
 - Translate entity IDs and copy PNG, JPEG and GIF assets from supported local image references.
 - Block conflicting edits and report failed rules through persistent notifications and a problem sensor.
 - Use the source dashboard as the integration entry title and show the selected scope and destination on the service row.
+- Use native access for existing local dashboards and reuse a selected Remote Home-Assistant connection, with a documented manual token fallback.

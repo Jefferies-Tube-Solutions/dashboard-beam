@@ -5,14 +5,16 @@ Companion: [AI Systems Reference](../ai/replication.md)
 
 ## Commissioning
 
-1. Use two reachable Home Assistant 2026.11 instances and two administrator long-lived access tokens. Enter the tokens only in the Home Assistant setup dialog.
+1. Use two reachable Home Assistant 2026.11 instances. Beam reads local dashboards and entity states directly.
 2. On the local instance, add `https://github.com/Jefferies-Tube-Solutions/dashboard-beam` to **Settings → Marketplace** as a custom integration, enable prereleases and install **v0.1.0-beta.1**. Restart if prompted.
-3. Open **Settings → Devices & services → Add integration → JTS - Dashboard Beam**. Enter both HA origins and the local entity prefix, including its separator. For example, use `cabin_` when remote `light.porch` appears locally as `light.cabin_porch`. Beam suggests a prefix when configured Remote Home Assistant entries agree on one nonempty value.
+3. Open **Settings → Devices & services → Add integration → JTS - Dashboard Beam**. Select the existing **Remote Home-Assistant** connection if available. Beam reads its address, token and entity prefix. If the connection uses a nonadministrator account, choose manual access. On the remote instance, open the administrator profile → **Security → Long-lived access tokens → Create token**. Enter the token and remote base URL in the Beam dialog. Add the entity prefix if used.
 4. Choose the source site, dashboard and scope. Select **Entire dashboard** or one view or subview. A view without a configured path appears with its positional URL, such as `/0`.
 5. Choose an existing destination dashboard or create a new one. For a single-view rule, select a destination view or enter a path for a new view. A new dashboard starts with administrator-only access and can receive either the whole source dashboard or just the selected view. A new view inherits the source view's content and title, if present.
 6. The first valid check copies from the selected source and creates the destination if requested. Afterward the rule synchronizes in both directions. Add another integration entry for another pair.
 
 The integration entry is named after the source dashboard. Its service row shows the selected view or **All views**, followed by the destination dashboard and scope. Each view pair has its own rule.
+
+Creating a brand-new dashboard on the local instance is the one case that asks for local administrator access. Beam suggests the local URL if Home Assistant has one. Select an existing local dashboard, or create a new view within one, to use the direct local connection.
 
 ## Verification and recovery
 
