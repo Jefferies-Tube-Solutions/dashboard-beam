@@ -20,3 +20,5 @@ Install on one instance, add JTS - Dashboard Beam from Devices & services, and s
 - [JTS Brand System](https://github.com/Jefferies-Tube-Solutions/jts-brand-system)
 
 Beta 2 targets Home Assistant 2026.11. Add the repository as a custom integration in Marketplace and enable prereleases to select Beta 2.
+
+The [MIT license](LICENSE) covers software and documentation. [JTS names, logos and other branding](NOTICE.md) are excluded.
