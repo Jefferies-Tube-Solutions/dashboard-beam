@@ -28,6 +28,8 @@ class Rule:
         self.error = None
         self.checked = False
         self.task = None
+        self.watch_task = None
+        self.stopping = False
         self.pending = False
         self.signal = f"{DOMAIN}_{entry.entry_id}"
         self.store = Store(hass, 1, self.signal)
@@ -35,9 +37,31 @@ class Rule:
 
     @callback
     def trigger(self, _=None):
+        if self.stopping:
+            return
         self.pending = True
         if self.task is None or self.task.done():
             self.task = self.entry.async_create_background_task(self.hass, self.run(), self.signal)
+
+    def endpoint(self, side):
+        data = self.entry.data
+        return Endpoint(async_get_clientsession(self.hass), data[f"{side}_url"],
+                        data[f"{side}_token"], side.capitalize())
+
+    @callback
+    def local_dashboard_updated(self, event):
+        if event.data.get("url_path") == self.entry.data["local_dashboard"]:
+            self.trigger()
+
+    async def watch_remote(self):
+        while True:
+            try:
+                async with self.endpoint("remote").connect() as connection:
+                    await connection.watch_dashboard(self.entry.data["remote_dashboard"], self.trigger)
+            except (BeamError, TimeoutError, aiohttp.ClientError, ValueError, TypeError):
+                # Polling keeps working if the remote event stream is unavailable.
+                pass
+            await asyncio.sleep(30)
 
     async def run(self):
         data = self.entry.data
@@ -50,10 +74,7 @@ class Rule:
                 async with lock, asyncio.timeout(120), AsyncExitStack() as stack:
                     connections = []
                     for side in ("local", "remote"):
-                        endpoint = Endpoint(async_get_clientsession(self.hass),
-                                            data[f"{side}_url"], data[f"{side}_token"],
-                                            side.capitalize())
-                        connections.append(await stack.enter_async_context(endpoint.connect()))
+                        connections.append(await stack.enter_async_context(self.endpoint(side).connect()))
                     await reconcile(connections, data, self.state, self.store)
             except BeamError as exc:
                 error = str(exc)
@@ -82,6 +103,10 @@ async def async_setup_entry(hass, entry):
     entry.async_on_unload(async_track_time_interval(
         hass, rule.trigger, timedelta(seconds=INTERVAL_SECONDS)
     ))
+    entry.async_on_unload(hass.bus.async_listen("lovelace_updated", rule.local_dashboard_updated))
+    rule.watch_task = entry.async_create_background_task(
+        hass, rule.watch_remote(), f"{rule.signal}_remote_events"
+    )
     rule.trigger()
     return True
 
@@ -90,9 +115,11 @@ async def async_unload_entry(hass, entry):
     unloaded = await hass.config_entries.async_unload_platforms(entry, ["binary_sensor"])
     if unloaded:
         rule = entry.runtime_data
-        if rule.task and not rule.task.done():
-            rule.task.cancel()
-            await asyncio.gather(rule.task, return_exceptions=True)
+        rule.stopping = True
+        tasks = [task for task in (rule.task, rule.watch_task) if task and not task.done()]
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
         persistent_notification.async_dismiss(hass, rule.signal)
     return unloaded
 

@@ -9,7 +9,7 @@ Each config entry stores two HTTP(S) origin strings (`local_url`, `remote_url`),
 
 ## Execution and observability
 
-- Startup and a 300-second timer request reconciliation. A shared lock serializes writes across entries.
+- Startup, a 300-second fallback timer, and `lovelace_updated` events matching either configured dashboard path request reconciliation. The local event bus and a separate remote WebSocket subscription feed the same coalescing trigger. Remote subscription establishment requests a check, and disconnects retry after 30 seconds. The shared lock serializes writes across entries. Unload cancels the remote subscription and reconciliation task.
 - The persistent comparison baseline uses sorted JSON SHA-256 after mapping entity IDs and supported local image content hashes. Equal configs establish a baseline. Divergent uninitialized pairs use the selected initial source. One changed side transfers. Two divergent changes block.
 - Structured `entity`, `entity_id` and `entities` values and recognized IDs in common template delimiters are mapped. The sending rule requires both expected state IDs. Missing IDs produce a location in the notification.
 - `image`, `background`, `state_image` and `dark_image` support HA uploaded images and PNG/JPEG/GIF `/local/` assets up to 9 MiB. The destination uses HA image upload. Shared external URLs stay literal. Replication can create image objects before a dashboard write.
@@ -18,4 +18,4 @@ Each config entry stores two HTTP(S) origin strings (`local_url`, `remote_url`),
 
 ## Boundaries and verification
 
-No automatic dashboard or view creation, event-driven checks, conflict merge, image cleanup, custom card installation, device/area ID translation, or arbitrary template analysis in v0.1.0. Both instances must be able to serve their own assets. Local image URLs are restricted to known HA paths. Network and setup compatibility still require live HA commissioning. See [synthetic tests](../../tests/test_sync.py) for the comparison contract.
+No automatic dashboard or view creation, conflict merge, image cleanup, custom card installation, device/area ID translation, or arbitrary template analysis in v0.1.0. Both instances must be able to serve their own assets. Local image URLs are restricted to known HA paths. Network, event delivery and setup compatibility still require live HA commissioning. See [synthetic tests](../../tests/test_sync.py) for the comparison contract.

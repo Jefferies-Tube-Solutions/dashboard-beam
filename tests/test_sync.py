@@ -4,14 +4,16 @@ from copy import deepcopy
 import importlib
 from pathlib import Path
 import sys
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 PACKAGE = "beam_under_test"
 package = ModuleType(PACKAGE)
 package.__path__ = [str(Path(__file__).resolve().parents[1] / "custom_components" / "dashboard_beam")]
 sys.modules[PACKAGE] = package
 sync = importlib.import_module(f"{PACKAGE}.sync")
+client = importlib.import_module(f"{PACKAGE}.client")
 
 
 class FakeHome:
@@ -110,3 +112,35 @@ class ReplicationTest(unittest.TestCase):
         self.assertEqual(self.remote.uploads, 1)
         await self.run_rule()
         self.assertEqual((self.remote.uploads, self.remote.writes), (1, 1))
+
+    @synchronous_test
+    async def test_event_stream_checks_only_the_selected_dashboard(self):
+        class FakeSocket:
+            async def send_json(self, packet):
+                self.sent = packet
+
+            async def receive_json(self):
+                return {"id": 1, "success": True}
+
+            async def __aiter__(self):
+                for event_id, path in ((1, "other"), (2, "house"), (1, "house")):
+                    yield SimpleNamespace(type="text", json=lambda: {
+                        "id": event_id, "type": "event", "event": {"data": {"url_path": path}}
+                    })
+
+        socket = FakeSocket()
+        connection = client.Connection(None, socket)
+        calls = []
+        with patch.dict(sys.modules, {"aiohttp": SimpleNamespace(WSMsgType=SimpleNamespace(TEXT="text"))}), \
+                patch.object(client.asyncio, "timeout", lambda _: NoTimeout()):
+            await connection.watch_dashboard("house", lambda: calls.append("check"))
+        self.assertEqual(calls, ["check", "check"])
+        self.assertEqual(socket.sent["event_type"], "lovelace_updated")
+
+
+class NoTimeout:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_):
+        return False

@@ -1,6 +1,7 @@
 """Authenticated Home Assistant dashboard and image access."""
 
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import AsyncExitStack, asynccontextmanager
 import re
 from urllib.parse import urlsplit
 
@@ -35,18 +36,18 @@ class Endpoint:
 
     @asynccontextmanager
     async def connect(self):
-        import aiohttp
-
-        async with self.session.ws_connect(
-            self.url.replace("http", "ws", 1) + "/api/websocket",
-            max_msg_size=16 * 1024 * 1024,
-            timeout=aiohttp.ClientWSTimeout(ws_receive=20),
-        ) as ws:
-            if (await ws.receive_json()).get("type") != "auth_required":
-                raise BeamError(f"{self.label}: unexpected WebSocket handshake")
-            await ws.send_json({"type": "auth", "access_token": self.token})
-            if (await ws.receive_json()).get("type") != "auth_ok":
-                raise BeamError(f"{self.label}: authentication failed")
+        async with AsyncExitStack() as stack:
+            async with asyncio.timeout(20):
+                ws = await stack.enter_async_context(self.session.ws_connect(
+                    self.url.replace("http", "ws", 1) + "/api/websocket",
+                    max_msg_size=16 * 1024 * 1024,
+                    heartbeat=30,
+                ))
+                if (await ws.receive_json()).get("type") != "auth_required":
+                    raise BeamError(f"{self.label}: unexpected WebSocket handshake")
+                await ws.send_json({"type": "auth", "access_token": self.token})
+                if (await ws.receive_json()).get("type") != "auth_ok":
+                    raise BeamError(f"{self.label}: authentication failed")
             yield Connection(self, ws)
 
     async def download(self, path):
@@ -91,12 +92,28 @@ class Connection:
 
     async def call(self, command, **params):
         self.command_id += 1
-        await self.ws.send_json({"id": self.command_id, "type": command, **params})
-        result = await self.ws.receive_json()
+        async with asyncio.timeout(20):
+            await self.ws.send_json({"id": self.command_id, "type": command, **params})
+            result = await self.ws.receive_json()
         if result.get("id") != self.command_id or not result.get("success"):
             code = result.get("error", {}).get("code", "unexpected_result")
             raise BeamError(f"{self.endpoint.label}: {command} failed ({code})")
         return result.get("result")
+
+    async def watch_dashboard(self, path, trigger):
+        """Request a sync on subscription and on saves of the selected dashboard."""
+        import aiohttp
+
+        await self.call("subscribe_events", event_type="lovelace_updated")
+        subscription = self.command_id
+        trigger()
+        async for message in self.ws:
+            if message.type != aiohttp.WSMsgType.TEXT:
+                continue
+            packet = message.json()
+            if (packet.get("id") == subscription and packet.get("type") == "event"
+                    and packet.get("event", {}).get("data", {}).get("url_path") == path):
+                trigger()
 
     async def read(self, path):
         config = await self.call("lovelace/config", url_path=path)
