@@ -4,14 +4,17 @@ from copy import deepcopy
 import importlib
 from pathlib import Path
 import sys
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 PACKAGE = "beam_under_test"
 package = ModuleType(PACKAGE)
 package.__path__ = [str(Path(__file__).resolve().parents[1] / "custom_components" / "dashboard_beam")]
 sys.modules[PACKAGE] = package
 sync = importlib.import_module(f"{PACKAGE}.sync")
+client = importlib.import_module(f"{PACKAGE}.client")
+remote = importlib.import_module(f"{PACKAGE}.remote")
 
 
 class FakeHome:
@@ -26,13 +29,23 @@ class FakeHome:
         self.writes = 0
         self.uploads = 0
         self.images = {}
+        self.dashboard = None
+        self.creates = 0
 
     async def read(self, path):
+        if self.config is None:
+            raise client.DashboardNotFound(path)
         return deepcopy(self.config)
 
     async def call(self, command, **params):
         if command == "get_states":
             return [{"entity_id": self.entity}]
+        if command == "lovelace/dashboards/list":
+            return [self.dashboard] if self.dashboard else []
+        if command == "lovelace/dashboards/create":
+            self.creates += 1
+            self.dashboard = {"id": "new-id", **params}
+            return self.dashboard
         self.config = params["config"]
         self.writes += 1
 
@@ -49,6 +62,32 @@ class FakeHome:
 class FakeStore:
     async def async_save(self, state):
         self.saved = deepcopy(state)
+
+
+class RemoteConnectionTest(unittest.TestCase):
+    def test_existing_connection_uses_current_settings_and_normalizes_prefix(self):
+        entry = SimpleNamespace(
+            domain="remote_homeassistant", disabled_by=None,
+            data={"host": "example.local", "port": 8443, "secure": True, "access_token": "test-token"},
+            options={"entity_prefix": "IA_", "entity_friendly_name_prefix": "IA-"},
+        )
+        hass = SimpleNamespace(config_entries=SimpleNamespace(async_get_entry=lambda _: entry))
+        rule = {"remote_entry_id": "selected-entry"}
+        self.assertEqual(
+            remote.resolve_remote(hass, rule), ("https://example.local:8443", "test-token", "ia_")
+        )
+        self.assertEqual(rule, {"remote_entry_id": "selected-entry"})
+        entry.data["access_token"] = "rotated-test-token"
+        self.assertEqual(remote.resolve_remote(hass, rule)[1], "rotated-test-token")
+        entry.disabled_by = "user"
+        with self.assertRaisesRegex(client.BeamError, "unavailable"):
+            remote.resolve_remote(hass, rule)
+
+    def test_manual_prefix_allows_uppercase_and_empty_values(self):
+        self.assertEqual(remote.normalize_prefix(" IA_ "), "ia_")
+        self.assertEqual(remote.normalize_prefix(None), "")
+        with self.assertRaises(ValueError):
+            remote.normalize_prefix("IA-")
 
 
 def synchronous_test(test):
@@ -110,3 +149,90 @@ class ReplicationTest(unittest.TestCase):
         self.assertEqual(self.remote.uploads, 1)
         await self.run_rule()
         self.assertEqual((self.remote.uploads, self.remote.writes), (1, 1))
+
+    @synchronous_test
+    async def test_positional_view_round_trip_preserves_absent_path(self):
+        del self.remote.config["views"][0]["path"]
+        self.rule["remote_view"] = "0"
+        await self.run_rule()
+        self.local.config["views"][0]["title"] = "Local change"
+        await self.run_rule()
+        self.assertNotIn("path", self.remote.config["views"][0])
+        self.assertEqual(self.remote.config["views"][0]["title"], "Local change")
+        self.remote.config["views"][0]["title"] = "Remote change"
+        await self.run_rule()
+        self.assertEqual(self.local.config["views"][0]["title"], "Remote change")
+
+    @synchronous_test
+    async def test_append_new_view_from_remote_and_preserve_existing_views(self):
+        original = deepcopy(self.local.config["views"])
+        self.rule.update(local_view="new-view", initial_source=1, creation={"view": True})
+        await self.run_rule()
+        await self.run_rule()
+        self.assertEqual(self.local.config["views"][:2], original)
+        self.assertEqual(self.local.config["views"][2]["path"], "new-view")
+        self.assertEqual(self.local.config["views"][2]["cards"][0]["entity"], self.local.entity)
+        self.assertEqual(self.local.writes, 1)
+
+    @synchronous_test
+    async def test_new_dashboard_can_receive_a_whole_dashboard_or_one_view(self):
+        for whole in (True, False):
+            with self.subTest(whole=whole):
+                self.setUp()
+                self.remote.config = None
+                self.rule.update(creation={"dashboard_title": "Beam Copy"})
+                if whole:
+                    self.rule.update(local_view="", remote_view="")
+                await self.run_rule()
+                await self.run_rule()
+                self.assertEqual(self.remote.dashboard["title"], "Beam Copy")
+                self.assertEqual(len(self.remote.config["views"]), 2 if whole else 1)
+                self.assertEqual((self.remote.creates, self.remote.writes), (1, 1))
+
+    @synchronous_test
+    async def test_occupied_new_destination_is_not_overwritten(self):
+        self.rule.update(creation={"view": True})
+        with self.assertRaisesRegex(sync.BeamError, "already contains"):
+            await self.run_rule()
+        self.assertEqual(self.remote.writes, 0)
+
+    @synchronous_test
+    async def test_retry_after_dashboard_registration_reuses_its_id(self):
+        self.remote.config = None
+        self.remote.dashboard = {"id": "new-id", "url_path": "house"}
+        self.state["created_dashboard"] = "new-id"
+        self.rule["creation"] = {"dashboard_title": "Beam Copy"}
+        await self.run_rule()
+        self.assertEqual((self.remote.creates, self.remote.writes), (0, 1))
+
+    @synchronous_test
+    async def test_event_stream_checks_only_the_selected_dashboard(self):
+        class FakeSocket:
+            async def send_json(self, packet):
+                self.sent = packet
+
+            async def receive_json(self):
+                return {"id": 1, "success": True}
+
+            async def __aiter__(self):
+                for event_id, path in ((1, "other"), (2, "house"), (1, "house")):
+                    yield SimpleNamespace(type="text", json=lambda: {
+                        "id": event_id, "type": "event", "event": {"data": {"url_path": path}}
+                    })
+
+        socket = FakeSocket()
+        connection = client.Connection(None, socket)
+        calls = []
+        with patch.dict(sys.modules, {"aiohttp": SimpleNamespace(WSMsgType=SimpleNamespace(TEXT="text"))}), \
+                patch.object(client.asyncio, "timeout", lambda _: NoTimeout()):
+            await connection.watch_dashboard("house", lambda: calls.append("check"))
+        self.assertEqual(calls, ["check", "check"])
+        self.assertEqual(socket.sent["event_type"], "lovelace_updated")
+
+
+class NoTimeout:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_):
+        return False

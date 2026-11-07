@@ -2,31 +2,59 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connect two Home Assistant instances",
-        "description": "Install Beam on the local instance. Enter administrator tokens and confirm the entity prefix used on that instance.",
+        "title": "Choose a Remote Home-Assistant connection",
+        "description": "Beam uses this Home Assistant directly. Select an existing connection to reuse its remote address, access token and entity prefix.",
+        "data": {"remote_entry": "Remote Home-Assistant connection"}
+      },
+      "manual": {
+        "title": "Connect to another Home Assistant",
+        "description": "On the remote Home Assistant, sign in as an administrator. Open your profile, select Security, then create a token under Long-lived access tokens. Paste it below and enter the remote base URL and optional entity prefix.",
         "data": {
-          "local_url": "Local Home Assistant URL",
-          "local_token": "Local access token",
           "remote_url": "Remote Home Assistant URL",
           "remote_token": "Remote access token",
           "prefix": "Local entity prefix"
         }
       },
-      "dashboards": {
-        "title": "Choose dashboards",
-        "data": {"local_dashboard": "Local dashboard", "remote_dashboard": "Remote dashboard"}
+      "local_creation": {
+        "title": "Authorize creation of a local dashboard",
+        "description": "A brand-new dashboard on this instance uses Home Assistant's dashboard creation API. In your local administrator profile, open Security and create a token under Long-lived access tokens. An existing local dashboard or a new view within one does not need this step.",
+        "data": {"local_url": "Local Home Assistant URL", "local_token": "Local administrator token"}
       },
-      "views": {
-        "title": "Choose what to synchronize",
-        "description": "The selected source wins the first sync if the content differs. Afterwards, changes can travel both ways.",
-        "data": {"local_view": "Local view", "remote_view": "Remote view", "initial_source": "First sync source"}
+      "source": {
+        "title": "Choose the first sync source",
+        "description": "Choose which site supplies the first copy. After the first sync, changes can travel both ways.",
+        "data": {"initial_source": "Source Home Assistant"}
+      },
+      "source_dashboard": {
+        "title": "Choose the source dashboard",
+        "data": {"dashboard": "Source dashboard"}
+      },
+      "source_view": {
+        "title": "Choose what to beam",
+        "data": {"view": "Entire dashboard or source view"}
+      },
+      "destination_dashboard": {
+        "title": "Choose the destination dashboard",
+        "data": {"dashboard": "Destination dashboard"}
+      },
+      "destination_view": {
+        "title": "Choose the destination view",
+        "data": {"view": "Destination view"}
+      },
+      "new_destination": {
+        "title": "Set up the new destination",
+        "description": "Beam creates the destination during the first valid sync.",
+        "data": {"dashboard_title": "Dashboard title", "dashboard_path": "Dashboard URL path", "view_path": "View URL path"}
       }
     },
     "error": {
-      "cannot_connect": "Could not read both instances. Check the URLs and administrator tokens.",
-      "invalid_input": "Enter two distinct Home Assistant URLs and a valid entity prefix.",
-      "mismatched_scope": "Choose entire dashboards on both sides or an individual view on both sides.",
-      "no_dashboards": "Create an editable dashboard on each instance first."
+      "cannot_connect": "Could not read both instances. Check the address, connection and administrator token. If needed, select manual remote access.",
+      "remote_not_admin": "The remote account cannot manage dashboards. Select manual access and use a remote administrator's token.",
+      "invalid_input": "Enter a Home Assistant base URL and a valid entity prefix.",
+      "invalid_dashboard_path": "Enter a title and a lowercase dashboard path containing a hyphen, such as cabin-copy.",
+      "invalid_view_path": "Enter a lowercase view path, such as home-4. A path containing only digits is reserved for positional views.",
+      "destination_exists": "The destination path is already in use.",
+      "no_dashboards": "Create an editable dashboard on at least one instance first."
     },
     "abort": {"overlap": "One of these dashboards or views is already managed by another rule."}
   }
