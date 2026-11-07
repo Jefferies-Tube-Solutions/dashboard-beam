@@ -1,7 +1,6 @@
 """Configure one paired dashboard or view in the Home Assistant UI."""
 
 import asyncio
-import re
 
 import aiohttp
 import voluptuous as vol
@@ -18,12 +17,11 @@ from .client import BeamError, Endpoint, base_url
 from .const import DOMAIN
 from .local import LocalEndpoint
 from .remote import REMOTE_DOMAIN, normalize_prefix, remote_settings, resolve_remote
-from .sync import view_path
+from .sync import destination_path, view_path
 
 WHOLE = "__whole__"
 NEW = "__new__"
 SIDES = ("local", "remote")
-SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 
 
 def picker(options):
@@ -199,33 +197,27 @@ class DashboardBeamFlow(config_entries.ConfigFlow, domain=DOMAIN):
         target = 1 - self.first
         side = SIDES[target]
         if user_input:
-            dashboard = user_input.get("dashboard_path", "").strip()
-            title = user_input.get("dashboard_title", "").strip()
-            view = user_input.get("view_path", "").strip()
-            if self.new_dashboard and (
-                not title or not SLUG.fullmatch(dashboard) or "-" not in dashboard
-            ):
-                errors["base"] = "invalid_dashboard_path"
-            elif self.new_dashboard and dashboard in self.dashboard_paths[target]:
-                errors["base"] = "destination_exists"
-            elif self.single_view and (not SLUG.fullmatch(view) or view.isdecimal()):
-                errors["base"] = "invalid_view_path"
-            elif self.single_view and not self.new_dashboard and view in self.destination_views:
-                errors["base"] = "destination_exists"
+            title = user_input["name"].strip()
+            if not title:
+                errors["base"] = "empty_destination_name"
             else:
                 if self.new_dashboard:
-                    self.data[f"{side}_dashboard"] = dashboard
+                    self.data[f"{side}_dashboard"] = destination_path(
+                        title, self.dashboard_paths[target], dashboard=True,
+                    )
+                    source = SIDES[self.first]
+                    view = destination_path(self.data[f"{source}_view"], ()) if self.single_view else ""
+                    self.data["creation"] = {"dashboard_title": title}
+                else:
+                    view = destination_path(title, self.destination_views)
+                    self.data["creation"] = {"view": True, "view_title": title}
                 self.data[f"{side}_view"] = view
-                self.data["creation"] = {"dashboard_title": title} if self.new_dashboard else {"view": True}
                 if self.new_dashboard and side == "local":
                     return await self.async_step_local_creation()
                 return self.finish()
-        fields = {}
-        if self.new_dashboard:
-            fields.update({vol.Required("dashboard_title"): str, vol.Required("dashboard_path"): str})
-        if self.single_view:
-            fields[vol.Required("view_path")] = str
-        return self.async_show_form(step_id="new_destination", errors=errors, data_schema=vol.Schema(fields))
+        return self.async_show_form(step_id="new_destination", errors=errors, data_schema=vol.Schema({
+            vol.Required("name"): str,
+        }))
 
     async def async_step_local_creation(self, user_input=None):
         errors = {}
@@ -275,7 +267,8 @@ class DashboardBeamFlow(config_entries.ConfigFlow, domain=DOMAIN):
         target_view = self.data[f"{destination}_view"]
         source_scope = self.source_views[source_path] if self.single_view else "All views"
         target_scope = (
-            getattr(self, "destination_views", {}).get(target_view, f"/{target_view}")
+            self.data.get("creation", {}).get("view_title")
+            or getattr(self, "destination_views", {}).get(target_view, f"/{target_view}")
             if self.single_view else "All views"
         )
         self.data["service_name"] = f"{source_scope} → {target_title} · {target_scope}"
