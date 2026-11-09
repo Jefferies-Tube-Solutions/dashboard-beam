@@ -1,4 +1,4 @@
-<!-- JTS-DOC: ai; slug: replication; status: draft; version: 0.1.0-beta.3 -->
+<!-- JTS-DOC: ai; slug: replication; status: draft; version: 1.0.0-beta.1 -->
 # AI Systems Reference — Dashboard replication
 
 Companion: [Human Operations Manual](../guides/replication.md)
@@ -25,4 +25,4 @@ New entries use the source dashboard title as the config entry title. Optional `
 
 ## Boundaries and verification
 
-No conflict merge, image cleanup, custom card installation, device/area ID translation, or arbitrary template analysis in Beta 3. Both instances must be able to serve their own assets. Local image URLs are restricted to known HA paths. Network, event delivery and setup compatibility still require live HA commissioning. See [synthetic tests](../../tests/test_sync.py) for the comparison contract.
+No conflict merge, image cleanup, custom card installation, device/area ID translation, or arbitrary template analysis in 1.0 Beta 1. Both instances must be able to serve their own assets. Local image URLs are restricted to known HA paths. Network, event delivery and setup compatibility still require live HA commissioning. See [synthetic tests](../../tests/test_sync.py) for the comparison contract.

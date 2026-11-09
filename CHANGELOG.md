@@ -1,5 +1,9 @@
 # Operations Log
 
+## v1.0.0-beta.1
+
+- Promote the tested Beta 3 implementation to the 1.0 approval candidate.
+
 ## v0.1.0-beta.3
 
 - Ask only for the new destination name and generate the dashboard and view URL paths automatically.
