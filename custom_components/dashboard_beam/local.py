@@ -12,7 +12,7 @@ from multidict import CIMultiDict, CIMultiDictProxy
 
 from homeassistant.components.lovelace.const import ConfigNotFound, LOVELACE_DATA
 
-from .client import BeamError, DashboardNotFound, IMAGE, IMAGE_TYPES, MAX_BYTES
+from .client import BeamError, DashboardNotFound, IMAGE, IMAGE_TYPES, LOCAL_MEDIA, MAX_BYTES, local_media_parts
 
 
 class LocalEndpoint:
@@ -70,6 +70,12 @@ class LocalEndpoint:
             root = self.hass.config.path("image")
             relative = f"{match[1]}/original"
             kind = image["content_type"]
+        elif path.startswith(LOCAL_MEDIA):
+            directory, relative = local_media_parts(path)
+            root = self.hass.config.media_dirs.get(directory)
+            if root is None:
+                raise BeamError(f"Local: media directory {directory!r} is unavailable")
+            kind = guess_type(relative)[0]
         else:
             root = self.hass.config.path("www")
             relative = unquote(path.removeprefix("/local/"))

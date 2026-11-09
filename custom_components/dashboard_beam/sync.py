@@ -6,11 +6,11 @@ import json
 import re
 import unicodedata
 
-from .client import BeamError, DashboardNotFound, IMAGE, MEDIA
+from .client import BeamError, DashboardNotFound, IMAGE, LOCAL_MEDIA, MEDIA
 
 ENTITY = re.compile(r"\b[a-z_][a-z0-9_]*\.[a-z0-9_]+\b")
 ENTITY_FIELDS = {"entity", "entity_id", "entities"}
-IMAGE_FIELDS = {"image", "background", "state_image", "dark_image"}
+IMAGE_FIELDS = {"image", "background", "state_image", "dark_image", "dark_mode_image"}
 LOCAL_IMAGE = re.compile(r"/local/[^\s'\")]+")
 EMBEDDED_IMAGE = re.compile(r"(?P<quote>['\"]?)(?P<url>/(?:local|api/image/serve)/[^\s'\")]+)(?P=quote)")
 ASSET = re.compile(r"beam-image://([a-f0-9]{64})")
@@ -60,6 +60,17 @@ def select(config, path):
     if index is None:
         raise BeamError(f"Expected exactly one view with path {path!r}")
     return {key: value for key, value in config["views"][index].items() if key != "path"}
+
+
+def positional_context(config, path):
+    """Capture surrounding views so a positional rule cannot silently move."""
+    if not config or not path:
+        return None
+    index = view_index(config, path)
+    if index is None or config["views"][index].get("path"):
+        return None
+    return [digest(view) if not view.get("path") else view["path"]
+            for i, view in enumerate(config["views"]) if i != index]
 
 
 def replace(config, path, value, *, append=False):
@@ -116,7 +127,7 @@ class Normalizer:
         match = IMAGE.fullmatch(value) or MEDIA.fullmatch(value)
         if match:
             value = f"/api/image/serve/{match[1]}/original"
-        if not match and not LOCAL_IMAGE.fullmatch(value):
+        if not match and not value.startswith(LOCAL_MEDIA) and not LOCAL_IMAGE.fullmatch(value):
             if value.startswith(("/api/", "media-source:", "//")):
                 raise BeamError(f"Unsupported local image reference on {self.endpoints[side].label}: {value}")
             return value
@@ -130,6 +141,13 @@ class Normalizer:
 
     async def normalize(self, value, side, location="$", field=""):
         if isinstance(value, dict):
+            media_id = value.get("media_content_id")
+            if (field in IMAGE_FIELDS and isinstance(media_id, str)
+                    and (media_id.startswith(LOCAL_MEDIA) or MEDIA.fullmatch(media_id)
+                         or IMAGE.fullmatch(media_id) or LOCAL_IMAGE.fullmatch(media_id))):
+                return {key: await self.normalize(item, side, f"{location}.{key}",
+                                                  "image" if key == "media_content_id" else key)
+                        for key, item in value.items() if key != "metadata"}
             result = {}
             for key, item in value.items():
                 child_field = field if field == "state_image" else key
@@ -158,7 +176,11 @@ class Normalizer:
 
     async def materialize(self, value, side):
         if isinstance(value, dict):
-            return {key: await self.materialize(item, side) for key, item in value.items()}
+            result = {key: await self.materialize(item, side) for key, item in value.items()}
+            media_id = result.get("media_content_id")
+            if isinstance(media_id, str) and (match := IMAGE.fullmatch(media_id)):
+                result["media_content_id"] = f"media-source://image_upload/{match[1]}"
+            return result
         if isinstance(value, list):
             return [await self.materialize(item, side) for item in value]
         if not isinstance(value, str):
@@ -200,6 +222,10 @@ async def reconcile(connections, config, state, store):
             raise
 
     configs = [await read_side(i) for i in range(2)]
+    positions = [positional_context(item, view) for item, view in zip(configs, views)]
+    previous_positions = state.get("positions", config.get("positions"))
+    if previous_positions is not None and positions != previous_positions:
+        raise BeamError("A positional view may have moved. Check its position or recreate the Beam rule.")
     selected = []
     for i, (item, view) in enumerate(zip(configs, views)):
         if i == target and creation and (item is None or (view and view_index(item, view) is None)):
@@ -215,6 +241,13 @@ async def reconcile(connections, config, state, store):
             if item is not None:
                 item.pop("title", None)
     current = [digest(item) for item in normalized]
+    if previous_positions is None and (baseline := state.get("baseline")) is not None:
+        if any(position is not None and current[i] != baseline[i]
+               for i, position in enumerate(positions)):
+            raise BeamError("Cannot verify the existing positional view. Check it and recreate the Beam rule.")
+    if state.get("positions") != positions:
+        state["positions"] = positions
+        await store.async_save(state)
     if creation and selected[target] is not None:
         pending = state.get("pending_creation")
         if current[target] != pending:

@@ -164,6 +164,40 @@ class ReplicationTest(unittest.TestCase):
         self.assertEqual(self.local.config["views"][0]["title"], "Remote change")
 
     @synchronous_test
+    async def test_positional_reorder_blocks_before_write(self):
+        self.remote.config["views"][0].pop("path")
+        self.remote.config["views"][1].pop("path")
+        self.rule["remote_view"] = "0"
+        await self.run_rule()
+        self.remote.config["views"].reverse()
+        with self.assertRaisesRegex(sync.BeamError, "positional view may have moved"):
+            await self.run_rule()
+        self.assertEqual((self.local.writes, self.remote.writes), (0, 0))
+
+    @synchronous_test
+    async def test_media_browser_picture_copies_and_round_trips(self):
+        ref = "media-source://media_source/local/V4 - Plantegning.png"
+        self.local.images[ref] = b"floor plan"
+        self.local.config["views"][0]["cards"][0]["image"] = {
+            "media_content_id": ref, "media_content_type": "image/png",
+            "metadata": {"thumbnail": "source-only"},
+        }
+        await self.run_rule()
+        remote_card = self.remote.config["views"][0]["cards"][0]
+        self.assertRegex(remote_card["image"]["media_content_id"], "^media-source://image_upload/")
+        self.assertNotIn("metadata", remote_card["image"])
+        remote_card["icon"] = "mdi:floor-plan"
+        await self.run_rule()
+        self.assertEqual(self.local.config["views"][0]["cards"][0]["icon"], "mdi:floor-plan")
+        self.assertEqual(self.local.uploads, 0)
+        self.assertEqual(self.remote.uploads, 1)
+
+    def test_local_media_rejects_traversal(self):
+        for path in ("../secret.png", "%2e%2e/secret.png", "%2fsecret.png", "a%5cb.png"):
+            with self.subTest(path=path), self.assertRaises(client.BeamError):
+                client.local_media_parts(client.LOCAL_MEDIA + "local/" + path)
+
+    @synchronous_test
     async def test_append_new_view_from_remote_and_preserve_existing_views(self):
         original = deepcopy(self.local.config["views"])
         self.rule.update(local_view="new-view", initial_source=1, creation={"view": True})

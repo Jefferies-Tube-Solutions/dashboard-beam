@@ -17,7 +17,7 @@ from .client import BeamError, Endpoint, base_url
 from .const import DOMAIN
 from .local import LocalEndpoint
 from .remote import REMOTE_DOMAIN, normalize_prefix, remote_settings, resolve_remote
-from .sync import destination_path, view_path
+from .sync import destination_path, positional_context, view_path
 
 WHOLE = "__whole__"
 NEW = "__new__"
@@ -86,6 +86,7 @@ class DashboardBeamFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.dashboard_options = []
             self.dashboard_paths = []
             self.dashboard_titles = []
+            self.view_configs = {}
             for side in SIDES:
                 async with self.endpoint(side).connect() as connection:
                     if side == "remote":
@@ -126,6 +127,7 @@ class DashboardBeamFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def view_options(self, side, dashboard):
         async with self.endpoint(side).connect() as connection:
             config = await connection.read(dashboard)
+        self.view_configs[side, dashboard] = config
         return {
             path: f"{view.get('title') or f'View {i + 1}'} (/{path})"
             for i, view in enumerate(config["views"])
@@ -246,6 +248,11 @@ class DashboardBeamFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }))
 
     def finish(self):
+        self.data["positions"] = [
+            positional_context(self.view_configs.get((side, self.data[f"{side}_dashboard"])),
+                               self.data[f"{side}_view"])
+            for side in SIDES
+        ]
         for entry in self._async_current_entries():
             for side in SIDES:
                 prior = entry.data
