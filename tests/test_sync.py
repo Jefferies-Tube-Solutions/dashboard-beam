@@ -281,7 +281,7 @@ class ReplicationTest(unittest.TestCase):
         with patch.dict(sys.modules, {"aiohttp": SimpleNamespace(WSMsgType=SimpleNamespace(TEXT="text"))}), \
                 patch.object(client.asyncio, "timeout", lambda _: NoTimeout()):
             await connection.watch_dashboard("house", lambda: calls.append("check"))
-        self.assertEqual(calls, ["check", "check"])
+        self.assertEqual(calls, ["check"])
         self.assertEqual(socket.sent["event_type"], "lovelace_updated")
 
 

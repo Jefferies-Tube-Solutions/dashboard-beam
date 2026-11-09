@@ -8,14 +8,14 @@ import logging
 import aiohttp
 
 from homeassistant.components import persistent_notification
-from homeassistant.core import callback
+from homeassistant.core import EventOrigin, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 
 from .client import BeamError, Endpoint
-from .const import DOMAIN, INTERVAL_SECONDS
+from .const import DOMAIN, INTERVAL_SECONDS, MIN_CHECK_INTERVAL, REMOTE_RETRY_INITIAL, REMOTE_RETRY_MAX
 from .local import LocalEndpoint
 from .remote import resolve_remote
 from .sync import reconcile
@@ -33,6 +33,7 @@ class Rule:
         self.watch_task = None
         self.stopping = False
         self.pending = False
+        self.next_check = 0
         self.signal = f"{DOMAIN}_{entry.entry_id}"
         self.store = Store(hass, 1, self.signal)
         self.state = {}
@@ -59,28 +60,39 @@ class Rule:
 
     @callback
     def local_dashboard_updated(self, event):
-        if event.data.get("url_path") == self.entry.data["local_dashboard"]:
+        if (event.origin == EventOrigin.local
+                and event.data.get("url_path") == self.entry.data["local_dashboard"]):
             self.trigger()
 
     async def watch_remote(self):
+        delay = REMOTE_RETRY_INITIAL
+        loop = asyncio.get_running_loop()
         while True:
+            started = loop.time()
             try:
                 async with self.endpoint("remote").connect() as connection:
                     await connection.watch_dashboard(self.entry.data["remote_dashboard"], self.trigger)
             except (BeamError, TimeoutError, aiohttp.ClientError, ValueError, TypeError):
                 # Polling keeps working if the remote event stream is unavailable.
                 pass
-            await asyncio.sleep(30)
+            if loop.time() - started >= REMOTE_RETRY_MAX:
+                delay = REMOTE_RETRY_INITIAL
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, REMOTE_RETRY_MAX)
 
     async def run(self):
         data = self.entry.data
         # Two separate view rules may share a destination dashboard.
         lock = self.hass.data.setdefault(DOMAIN, asyncio.Lock())
+        loop = asyncio.get_running_loop()
         while self.pending:
+            if (delay := self.next_check - loop.time()) > 0:
+                await asyncio.sleep(delay)
             self.pending = False
             error = None
             try:
                 async with lock, asyncio.timeout(120), AsyncExitStack() as stack:
+                    self.next_check = loop.time() + MIN_CHECK_INTERVAL
                     connections = []
                     for side in ("local", "remote"):
                         connections.append(await stack.enter_async_context(self.endpoint(side).connect()))
