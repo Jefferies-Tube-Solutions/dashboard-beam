@@ -7,6 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = json.loads((ROOT / "custom_components/dashboard_beam/manifest.json").read_text())["version"]
+STATUS = "draft" if "-" in VERSION else "stable"
 DIRECTORIES = {"human": ROOT / "docs/guides", "ai": ROOT / "docs/ai"}
 SLUGS = {kind: {file.stem for file in directory.glob("*.md")}
          for kind, directory in DIRECTORIES.items()}
@@ -17,7 +18,7 @@ for slug in sorted(SLUGS["human"]):
     for kind, directory in DIRECTORIES.items():
         source = directory / f"{slug}.md"
         content = source.read_text(encoding="utf-8")
-        metadata = f"<!-- JTS-DOC: {kind}; slug: {slug}; status: draft; version: {VERSION} -->"
+        metadata = f"<!-- JTS-DOC: {kind}; slug: {slug}; status: {STATUS}; version: {VERSION} -->"
         companion = "ai" if kind == "human" else "guides"
         if not content.startswith(metadata + "\n") or f"(../{companion}/{slug}.md)" not in content:
             raise SystemExit(f"DOC-001: invalid metadata or companion link in {source.name}")
@@ -26,7 +27,7 @@ for slug in sorted(SLUGS["human"]):
                 if not (source.parent / target.partition("#")[0]).is_file():
                     raise SystemExit(f"DOC-001: broken link {target} in {source.name}")
 
-print(f"DOC-001: {len(SLUGS['human'])} manual pair(s), v{VERSION} draft")
+print(f"DOC-001: {len(SLUGS['human'])} manual pair(s), v{VERSION} {STATUS}")
 
 readme = (ROOT / "README.md").read_text(encoding="utf-8")
 expected_images = (
@@ -34,8 +35,13 @@ expected_images = (
     "docs/brand/jts-deep-space-transparent.png#gh-light-mode-only",
     "custom_components/dashboard_beam/brand/icon.png",
 )
-if not readme.startswith('<p align="right">') or f'alt="draft | v{VERSION}"' not in readme:
-    raise SystemExit("VIS-002: README must show the current draft version.")
+badge_line = readme.partition("</p>")[0]
+expected_badge = (
+    f'alt="draft | v{VERSION}"' if STATUS == "draft" else
+    'src="https://img.shields.io/github/v/release/Jefferies-Tube-Solutions/dashboard-beam?label=stable&amp;color=2ea44f"'
+)
+if not badge_line.startswith('<p align="right">') or expected_badge not in badge_line:
+    raise SystemExit("VIS-002: README must show the current draft or published stable release.")
 images = tuple(re.findall(r'<img\b[^>]*\bsrc="([^"]+)"', readme.partition("</p>")[2]))
 if images[:3] != expected_images:
     raise SystemExit("VIS-001: README must show the approved theme and product artwork.")
