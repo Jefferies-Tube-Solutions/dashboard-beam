@@ -3,7 +3,7 @@
 import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager
 import re
-from urllib.parse import urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 
 class BeamError(Exception):
@@ -16,8 +16,19 @@ class DashboardNotFound(BeamError):
 
 IMAGE = re.compile(r"/api/image/serve/([a-f0-9]{32})/(?:original|[^/?#]+)")
 MEDIA = re.compile(r"media-source://image_upload/([a-f0-9]{32})")
+LOCAL_MEDIA = "media-source://media_source/"
 IMAGE_TYPES = {"image/png": "png", "image/jpeg": "jpg", "image/gif": "gif"}
 MAX_BYTES = 9 * 1024 * 1024
+
+
+def local_media_parts(value):
+    """Parse only file paths in Home Assistant's configured media directories."""
+    directory, _, relative = value.removeprefix(LOCAL_MEDIA).partition("/")
+    directory, relative = unquote(directory), unquote(relative)
+    parts = [directory, *relative.split("/")]
+    if any(part in {"", ".", ".."} or any(c in part for c in "\\\x00:") for part in parts):
+        raise BeamError("Invalid local media path")
+    return directory, relative
 
 
 def base_url(value):
@@ -57,8 +68,15 @@ class Endpoint:
     async def download(self, path):
         import aiohttp
 
+        url_path = path
+        headers = {}
+        if path.startswith(LOCAL_MEDIA):
+            directory, relative = local_media_parts(path)
+            url_path = f"/media/{quote(directory, safe='')}/{quote(relative)}"
+            headers = {"Authorization": f"Bearer {self.token}"}
         async with self.session.get(
-            self.url + path, allow_redirects=False, timeout=aiohttp.ClientTimeout(total=20)
+            self.url + url_path, headers=headers, allow_redirects=False,
+            timeout=aiohttp.ClientTimeout(total=20),
         ) as response:
             kind = response.content_type
             if response.status != 200 or kind not in IMAGE_TYPES:

@@ -1,8 +1,13 @@
 # Operations Log
 
+## v1.0.0-beta.2
+
+- Block writes when the surrounding dashboard layout can no longer identify a positional view safely.
+- Copy images selected through Home Assistant's local media browser, including structured image references.
+
 ## v1.0.0-beta.1
 
-- Promote the tested Beta 3 implementation to the 1.0 approval candidate.
+- Promote Beta 3 to the first 1.0 approval candidate.
 
 ## v0.1.0-beta.3
 
