@@ -1,20 +1,30 @@
 name: Validate
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
   documentation:
-    name: ${{ matrix.check }}
-    strategy:
-      matrix:
-        check: [JTS documentation, Validate JTS design and documentation]
+    name: JTS documentation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
-      - run: python scripts/validate_documentation.py
+          persist-credentials: false
+      - uses: Jefferies-Tube-Solutions/jts-brand-checks@70a08d26709bf63f2fe047d642ed164178f154bc
+  documentation-legacy:
+    # Classic branch protection still requires this name. Mirror the shared result.
+    name: Validate JTS design and documentation
+    needs: documentation
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    env:
+      JTS_CHECK_RESULT: ${{ needs.documentation.result }}
+    steps:
+      - run: test "$JTS_CHECK_RESULT" = success
   hassfest:
     runs-on: ubuntu-latest
     steps:
