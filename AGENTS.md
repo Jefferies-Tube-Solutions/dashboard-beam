@@ -8,5 +8,9 @@ This repository follows the [JTS Brand System v1.1.0](https://github.com/Jefferi
 - Keep change history in the Operations Log. Public docs and code use English. State which checks used synthetic data and which ran against a live Home Assistant instance.
 
 For visual changes, check rendered light and dark themes and mobile views. Record
-what was verified in the pull request. Run `python scripts/validate_documentation.py`
-to check README status, approved artwork and paired manuals before merging.
+what was verified in the pull request. The required `JTS documentation` job runs the [shared JTS check](https://github.com/Jefferies-Tube-Solutions/jts-brand-checks) pinned in `.github/workflows/validate.yml`. It checks README status, approved artwork and paired manuals before merging.
+
+## Code Review Rules
+
+- Flag material changes to behavior, setup, compatibility, or recovery when the paired human guide and AI reference disagree with the implementation or a documentation-neutral exception lacks justification.
+- Flag changes that misrepresent release status, approved artwork, Home Assistant compatibility, or live verification. Explain the affected behavior and applicable JTS standard.
