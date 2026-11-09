@@ -1,4 +1,4 @@
-<p align="right"><img alt="draft | v1.0.0-beta.2" src="https://img.shields.io/badge/draft-v1.0.0--beta.2-grey"></p>
+<p align="right"><a href="https://github.com/Jefferies-Tube-Solutions/dashboard-beam/releases/latest"><img alt="Latest stable Dashboard Beam release" src="https://img.shields.io/github/v/release/Jefferies-Tube-Solutions/dashboard-beam?label=stable&amp;color=2ea44f"></a></p>
 
 <p align="center">
   <img src="docs/brand/jts-white-transparent.png#gh-dark-mode-only" alt="Jefferies Tube Solutions" width="560">
@@ -19,6 +19,6 @@ Install on one instance, add JTS - Dashboard Beam from Devices & services, and s
 - [Operations Log](CHANGELOG.md)
 - [JTS Brand System](https://github.com/Jefferies-Tube-Solutions/jts-brand-system)
 
-1.0 Beta 2 targets Home Assistant 2026.11. Add the repository as a custom integration in Marketplace and enable prereleases to select 1.0 Beta 2.
+Requires Home Assistant 2026.11 or newer. Add this repository as a custom integration in Marketplace to install the latest stable release.
 
 The [MIT license](LICENSE) covers software and documentation. [JTS names, logos and other branding](NOTICE.md) are excluded.

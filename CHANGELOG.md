@@ -1,5 +1,10 @@
 # Operations Log
 
+## v1.0.0
+
+- First stable release. Promotes the tested 1.0 Beta 2 replication behavior.
+- Verified on two Home Assistant instances using isolated dashboards. A media-browser image copied to the destination, a return edit propagated, and moving a positional view blocked replication until the order was restored.
+
 ## v1.0.0-beta.2
 
 - Block writes when the surrounding dashboard layout can no longer identify a positional view safely.
