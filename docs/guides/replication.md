@@ -18,7 +18,7 @@ Creating a brand-new dashboard on the local instance is the one case that asks f
 
 ## Verification and recovery
 
-Save a change to a card on either side. Beam requests a check when Home Assistant reports the dashboard save. Allow up to five minutes for the fallback check if the event was missed. Verify the corresponding view and its picture. Use the service's **Replication problem** entity as an optional conditional dashboard badge, visible when on. The persistent notification gives the failure reason, including the missing entity and its location in the configuration when detected.
+Save a change to a card on either side. Beam requests a check when Home Assistant reports the dashboard save and combines nearby requests. Allow up to five minutes for the fallback check if the event was missed. Verify the corresponding view and its picture. Use the service's **Replication problem** entity as an optional conditional dashboard badge, visible when on. The persistent notification gives the failure reason, including the missing entity and its location in the configuration when detected.
 
 Restore missing entities or repair the connection and wait for the next check. If both sides changed, bring the pair to the same intended content manually to resume. To roll back, disable the rule before restoring a dashboard backup. Removing an entry removes Beam's saved comparison state. Dashboard and image backups are the operator's responsibility.
 

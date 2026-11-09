@@ -125,12 +125,11 @@ class Connection:
         return result.get("result")
 
     async def watch_dashboard(self, path, trigger):
-        """Request a sync on subscription and on saves of the selected dashboard."""
+        """Request a sync only on saves of the selected dashboard."""
         import aiohttp
 
         await self.call("subscribe_events", event_type="lovelace_updated")
         subscription = self.command_id
-        trigger()
         async for message in self.ws:
             if message.type != aiohttp.WSMsgType.TEXT:
                 continue
