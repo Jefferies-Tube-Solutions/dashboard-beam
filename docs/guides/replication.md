@@ -1,4 +1,4 @@
-<!-- JTS-DOC: human; slug: replication; status: stable; version: 1.0.0 -->
+<!-- JTS-DOC: human; slug: replication; status: stable; version: 1.0.1 -->
 # Human Operations Manual — Dashboard replication
 
 Companion: [AI Systems Reference](../ai/replication.md)
@@ -6,7 +6,7 @@ Companion: [AI Systems Reference](../ai/replication.md)
 ## Commissioning
 
 1. Use two reachable Home Assistant 2026.11 instances. Beam reads local dashboards and entity states directly.
-2. On the local instance, add `https://github.com/Jefferies-Tube-Solutions/dashboard-beam` to **Settings → Marketplace** as a custom integration and install **v1.0.0**. Restart if prompted.
+2. On the local instance, add `https://github.com/Jefferies-Tube-Solutions/dashboard-beam` to **Settings → Marketplace** as a custom integration and install the latest stable release. Restart if prompted.
 3. Open **Settings → Devices & services → Add integration → JTS - Dashboard Beam**. Select the existing **Remote Home-Assistant** connection if available. Beam reads its address, token and entity prefix. If the connection uses a nonadministrator account, choose manual access. On the remote instance, open the administrator profile → **Security → Long-lived access tokens → Create token**. Enter the token and remote base URL in the Beam dialog. Add the entity prefix if used.
 4. Choose the source site, dashboard and scope. Select **Entire dashboard** or one view or subview. A view without a configured path appears with its positional URL, such as `/0`.
 5. Choose an existing destination or create a new one. Enter just the destination name. Beam generates the URL, using a numeric suffix if needed. A new dashboard starts with administrator-only access and can receive either the whole source dashboard or one selected view, which keeps its source title. When creating a view in an existing dashboard, the name you enter becomes that view's title.
@@ -18,7 +18,7 @@ Creating a brand-new dashboard on the local instance is the one case that asks f
 
 ## Verification and recovery
 
-The release candidate was tested on two Home Assistant instances using separate QA dashboards. The test confirmed image replication, a return edit, and recovery after restoring a reordered positional view.
+The replication behavior released in v1.0.0 was tested on two Home Assistant instances using separate QA dashboards. The test confirmed image replication, a return edit, and recovery after restoring a reordered positional view.
 
 Save a change to a card on either side. Beam requests a check when Home Assistant reports the dashboard save. Allow up to five minutes for the fallback check if the event was missed. Verify the corresponding view and its picture. Use the service's **Replication problem** entity as an optional conditional dashboard badge, visible when on. The persistent notification gives the failure reason, including the missing entity and its location in the configuration when detected.
 
