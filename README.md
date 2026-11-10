@@ -7,7 +7,10 @@
 
 # JTS - Dashboard Beam
 
-<img src="custom_components/dashboard_beam/brand/icon.png" alt="Dashboard Beam product hexagon" width="96">
+<p align="center">
+  <img src="docs/brand/dashboard-beam-full-dark-mode.png#gh-dark-mode-only" alt="JTS Dashboard Beam" width="760">
+  <img src="docs/brand/dashboard-beam-full-light-mode.png#gh-light-mode-only" alt="JTS Dashboard Beam" width="760">
+</p>
 
 ## Mission Directive
 

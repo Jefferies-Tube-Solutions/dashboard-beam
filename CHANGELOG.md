@@ -1,5 +1,9 @@
 # Operations Log
 
+## Unreleased
+
+- Show the full transparent Dashboard Beam lockup in the README for light and dark themes.
+
 ## v1.0.1
 
 - Reorganize the README around commissioning, verification and recovery.
