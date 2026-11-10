@@ -22,7 +22,7 @@ The release candidate was tested on two Home Assistant instances using separate 
 
 Save a change to a card on either side. Beam requests a check when Home Assistant reports the dashboard save. Allow up to five minutes for the fallback check if the event was missed. Verify the corresponding view and its picture. Use the service's **Replication problem** entity as an optional conditional dashboard badge, visible when on. The persistent notification gives the failure reason, including the missing entity and its location in the configuration when detected.
 
-Restore missing entities or repair the connection and wait for the next check. If both sides changed, bring the pair to the same intended content manually to resume. To roll back, disable the rule before restoring a dashboard backup. Removing an entry removes Beam's saved comparison state. Dashboard and image backups are the operator's responsibility.
+Restore missing entities or repair the connection and wait for the next check. If both sides changed, bring the pair to the same intended content manually to resume. To recover a missing destination, delete the remaining source dashboard. Leave the rule enabled and wait for the next check. Beam automatically restores both dashboards from its saved comparison state, so a dashboard backup is unnecessary. Removing an entry removes Beam's saved comparison state. Dashboard and image backups are the operator's responsibility.
 
 Positional URLs follow the order of the views. Beam pauses when the surrounding views change in a way that could move the target. Restore the original order or recreate the rule after checking the intended view. When upgrading an existing positional rule, Beam pauses if it cannot verify the view against the prior baseline.
 
