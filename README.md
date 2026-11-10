@@ -1,16 +1,20 @@
 <p align="right"><a href="https://github.com/Jefferies-Tube-Solutions/dashboard-beam/releases/latest"><img alt="Latest stable Dashboard Beam release" src="https://img.shields.io/github/v/release/Jefferies-Tube-Solutions/dashboard-beam?label=stable&amp;color=2ea44f"></a></p>
 
+<!-- ha-marketplace:exclude-start -->
 <p align="center">
   <img src="docs/brand/jts-white-transparent.png#gh-dark-mode-only" alt="Jefferies Tube Solutions" width="560">
   <img src="docs/brand/jts-deep-space-transparent.png#gh-light-mode-only" alt="Jefferies Tube Solutions" width="560">
 </p>
+<!-- ha-marketplace:exclude-end -->
 
 # JTS - Dashboard Beam
 
+<!-- ha-marketplace:exclude-start -->
 <p align="center">
   <img src="docs/brand/dashboard-beam-full-dark-mode.png#gh-dark-mode-only" alt="JTS Dashboard Beam" width="760">
   <img src="docs/brand/dashboard-beam-full-light-mode.png#gh-light-mode-only" alt="JTS Dashboard Beam" width="760">
 </p>
+<!-- ha-marketplace:exclude-end -->
 
 ## Mission Directive
 
