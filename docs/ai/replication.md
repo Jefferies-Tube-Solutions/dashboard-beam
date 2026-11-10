@@ -1,4 +1,4 @@
-<!-- JTS-DOC: ai; slug: replication; status: stable; version: 1.0.2 -->
+<!-- JTS-DOC: ai; slug: replication; status: stable; version: 1.0.3 -->
 # AI Systems Reference — Dashboard replication
 
 Companion: [Human Operations Manual](../guides/replication.md)
@@ -25,4 +25,4 @@ New entries use the source dashboard title as the config entry title. Optional `
 
 ## Boundaries and verification
 
-No conflict merge, image cleanup, custom card installation, device/area ID translation, or arbitrary template analysis in v1.0.2. Both instances must be able to serve their own assets. Local image URLs are restricted to known HA paths. Two-instance QA verified the replication behavior released in v1.0.0 for initial image transfer, reverse edits, and blocking and recovery when positional views were reordered. See [synthetic tests](../../tests/test_sync.py) for the comparison contract.
+No conflict merge, image cleanup, custom card installation, device/area ID translation, or arbitrary template analysis in v1.0.3. Both instances must be able to serve their own assets. Local image URLs are restricted to known HA paths. Two-instance QA verified the replication behavior released in v1.0.0 for initial image transfer, reverse edits, and blocking and recovery when positional views were reordered. See [synthetic tests](../../tests/test_sync.py) for the comparison contract.

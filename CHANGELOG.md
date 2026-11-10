@@ -1,6 +1,8 @@
 # Operations Log
 
-## Unreleased
+## v1.0.3
+
+- Add the standard GitHub badge row for release status, CI, Home Assistant compatibility, and licensing.
 
 - Hide GitHub theme-specific README artwork in Home Assistant Marketplace to avoid duplicate logos.
 
