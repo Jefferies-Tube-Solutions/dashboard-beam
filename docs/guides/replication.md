@@ -1,4 +1,4 @@
-<!-- JTS-DOC: human; slug: replication; status: stable; version: 1.0.2 -->
+<!-- JTS-DOC: human; slug: replication; status: stable; version: 1.0.3 -->
 # Human Operations Manual — Dashboard replication
 
 Companion: [AI Systems Reference](../ai/replication.md)

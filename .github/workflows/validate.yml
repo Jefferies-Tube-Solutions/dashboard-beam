@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: Jefferies-Tube-Solutions/jts-brand-checks@58886f64a241d3b7a93bbf6fca5f2edb50117c46
+      - uses: Jefferies-Tube-Solutions/jts-brand-checks@bd6183b373a8add9e7e9161a645fcf74321e1b8d
   documentation-legacy:
     # Classic branch protection still requires this name. Mirror the shared result.
     name: Validate JTS design and documentation

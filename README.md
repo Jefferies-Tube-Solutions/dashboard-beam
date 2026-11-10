@@ -1,4 +1,11 @@
-<p align="right"><a href="https://github.com/Jefferies-Tube-Solutions/dashboard-beam/releases/latest"><img alt="Latest stable Dashboard Beam release" src="https://img.shields.io/github/v/release/Jefferies-Tube-Solutions/dashboard-beam?label=stable&amp;color=2ea44f"></a></p>
+<!-- ha-marketplace:exclude-start -->
+<p align="right">
+  <a href="https://github.com/Jefferies-Tube-Solutions/dashboard-beam/releases/latest"><img alt="Latest stable Dashboard Beam release" src="https://img.shields.io/github/v/release/Jefferies-Tube-Solutions/dashboard-beam?label=stable&amp;color=2ea44f"></a>
+  <a href="https://github.com/Jefferies-Tube-Solutions/dashboard-beam/actions/workflows/validate.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/Jefferies-Tube-Solutions/dashboard-beam/validate.yml?branch=main&amp;label=CI"></a>
+  <a href="https://github.com/Jefferies-Tube-Solutions/dashboard-beam/blob/main/hacs.json"><img alt="Home Assistant 2026.11 or newer" src="https://img.shields.io/badge/Home%20Assistant-2026.11%2B-blue"></a>
+  <a href="https://github.com/Jefferies-Tube-Solutions/dashboard-beam/blob/main/LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
+</p>
+<!-- ha-marketplace:exclude-end -->
 
 <!-- ha-marketplace:exclude-start -->
 <p align="center">
