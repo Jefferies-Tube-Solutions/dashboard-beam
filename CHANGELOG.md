@@ -1,5 +1,11 @@
 # Operations Log
 
+## v1.0.1
+
+- Reorganize the README around commissioning, verification and recovery.
+- Run the shared JTS documentation and artwork check before merging. Codex reviews pull requests using the project's JTS rules.
+- Replication behavior is unchanged from v1.0.0.
+
 ## v1.0.0
 
 - First stable release. Promotes the tested 1.0 Beta 2 replication behavior.
