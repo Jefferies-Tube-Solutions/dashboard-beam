@@ -1,6 +1,6 @@
 # Operations Log
 
-## Unreleased
+## v1.0.2
 
 - Show the full transparent Dashboard Beam lockup in the README for light and dark themes.
 

@@ -3,7 +3,7 @@
 This repository follows the [JTS Brand System v1.1.0](https://github.com/Jefferies-Tube-Solutions/jts-brand-system/tree/v1.1.0). Read its standing orders and applicable standards before changing product identity, documentation, configuration or runtime behavior.
 
 - DOC-001 requires reciprocal human and AI manuals with matching slugs, status and version. Update them with any change to behavior or commissioning. Explain documentation-neutral changes in review.
-- VIS-001 requires the theme-aware JTS publisher art and a separate product hex. Preserve the recorded artwork provenance and current draft status.
+- VIS-001 requires theme-aware JTS publisher art and the [approved transparent product lockups](https://github.com/Jefferies-Tube-Solutions/jts-brand-system/blob/b892a8b4767d0b3070877b6f6dd327bc0aa5d29f/docs/README_LAYOUT.md) in the README. Preserve the integration icon and recorded artwork provenance.
 - HA-001 and HA-002 govern Home Assistant compatibility, HACS validation and service identity. Run the repository tests, documentation check, hassfest and HACS validation before commissioning.
 - Keep change history in the Operations Log. Public docs and code use English. State which checks used synthetic data and which ran against a live Home Assistant instance.
 
