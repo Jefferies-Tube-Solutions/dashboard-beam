@@ -48,6 +48,24 @@
       "height": 176,
       "bit_depth": 8,
       "color_type": 6
+    },
+    {
+      "path": "docs/brand/dashboard-beam-full-dark-mode.png",
+      "bytes": 221653,
+      "sha256": "4f98d1843d4fcced38c7c285848e9225c782692f9444bc2eeab2cd47f1241071",
+      "width": 1520,
+      "height": 408,
+      "bit_depth": 8,
+      "color_type": 6
+    },
+    {
+      "path": "docs/brand/dashboard-beam-full-light-mode.png",
+      "bytes": 216021,
+      "sha256": "7eb87ad0f67fc8f3dd79f36f211080f68585a34e34c2105c3ad7b16ff1b4a6d3",
+      "width": 1520,
+      "height": 408,
+      "bit_depth": 8,
+      "color_type": 6
     }
   ]
 }
